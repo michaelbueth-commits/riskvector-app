@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { fetchCountryAlerts, getAlertStats, RealAlert } from '@/lib/alertsService'
 import { countries, getCountryByName } from '@/lib/countries'
+import { getTravelAdvisory, convertAdvisoryScore } from '@/lib/travelAdvisoryService'
 
 // Helper function to fetch OpenWeatherMap alerts
 async function fetchOpenWeatherAlerts(lat: number, lon: number): Promise<RealAlert[]> {
@@ -136,6 +137,10 @@ export async function GET(
 
     const stats = getAlertStats(alerts)
     
+    // Fetch base risk score from Travel Advisory API
+    const advisory = await getTravelAdvisory(country.code);
+    const baseScore = advisory ? convertAdvisoryScore(advisory.score) : 20; // Default base score
+    
     // Calculate risk scores based on real data
     // Check for conflict zone override first
     const conflictInfo = CONFLICT_ZONES[country.name]
@@ -150,27 +155,27 @@ export async function GET(
       advisoryLevel = conflictInfo.level
       advisoryText = conflictInfo.advisory
     } else {
-      // Calculate from alerts
-      overallScore = Math.min(100, 
-        alerts.filter(a => a.type === 'critical').length * 30 +
-        alerts.filter(a => a.type === 'high').length * 20 +
-        alerts.filter(a => a.type === 'medium').length * 10 +
-        Math.floor(Math.random() * 10) // Base risk
-      )
+      // Calculate from alerts, starting with the base score
+      const alertScore = 
+        alerts.filter(a => a.type === 'critical').length * 25 +
+        alerts.filter(a => a.type === 'high').length * 15 +
+        alerts.filter(a => a.type === 'medium').length * 5;
       
-      // Determine advisory level based on real alerts
-      advisoryLevel = 'low'
-      advisoryText = 'No significant threats detected. Normal travel conditions.'
+      overallScore = Math.min(100, baseScore + alertScore);
       
-      if (alerts.some(a => a.type === 'critical')) {
-        advisoryLevel = 'critical'
-        advisoryText = 'CRITICAL: Active emergency situations detected. Avoid non-essential travel.'
-      } else if (alerts.some(a => a.type === 'high')) {
-        advisoryLevel = 'high'
-        advisoryText = 'HIGH RISK: Significant threats detected. Exercise extreme caution.'
-      } else if (alerts.some(a => a.type === 'medium')) {
-        advisoryLevel = 'medium'
-        advisoryText = 'MODERATE RISK: Some alerts active. Stay informed and take precautions.'
+      // Determine advisory level based on final score
+      if (overallScore >= 80) {
+        advisoryLevel = 'critical';
+        advisoryText = advisory?.message || 'CRITICAL: Multiple severe threats detected. Avoid all travel.';
+      } else if (overallScore >= 60) {
+        advisoryLevel = 'high';
+        advisoryText = advisory?.message || 'HIGH RISK: Significant threats detected. Reconsider travel.';
+      } else if (overallScore >= 40) {
+        advisoryLevel = 'medium';
+        advisoryText = advisory?.message || 'MODERATE RISK: Some alerts active. Exercise increased caution.';
+      } else {
+        advisoryLevel = 'low';
+        advisoryText = advisory?.message || 'No significant threats detected. Exercise normal precautions.';
       }
     }
     
