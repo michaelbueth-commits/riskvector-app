@@ -28,6 +28,18 @@ export default function Dashboard() {
     fetchAlerts()
   }, [selectedCountry])
 
+  // Filter alerts for selected country
+  const countryAlerts = alerts.filter(alert => {
+    const alertCountry = alert.country?.toLowerCase() || ''
+    const alertLocation = alert.location?.toLowerCase() || ''
+    const selected = selectedCountry.toLowerCase()
+    
+    // Match if country name appears in alert country or location
+    return alertCountry.includes(selected) || 
+           alertLocation.includes(selected) ||
+           selected.includes(alertCountry)
+  })
+
   const fetchRiskData = async (country: string) => {
     try {
       const res = await fetch(`/api/risk/${country}`)
@@ -172,13 +184,16 @@ export default function Dashboard() {
           <div className="lg:col-span-1">
             <div className="card-glass h-full">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Live Alerts</h2>
+                <div>
+                  <h2 className="text-xl font-bold">Live Alerts</h2>
+                  <p className="text-xs text-gray-500 mt-1">Showing alerts for {selectedCountry}</p>
+                </div>
                 <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold">
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                  {alerts.length} Active
+                  {countryAlerts.length} Active
                 </span>
               </div>
-              <AlertFeed alerts={alerts} isLoading={isLoading} />
+              <AlertFeed alerts={countryAlerts} isLoading={isLoading} />
             </div>
           </div>
         </div>
