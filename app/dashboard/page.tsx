@@ -6,6 +6,7 @@ import RiskScoreCard from '@/components/RiskScoreCard'
 import AlertFeed from '@/components/AlertFeed'
 import CountrySelector from '@/components/CountrySelector'
 import ThemeToggle from '@/components/ThemeToggle'
+import useGeolocation from '@/hooks/useGeolocation'
 
 // Dynamically import Leaflet components (client-side only)
 const RiskMap = dynamic(() => import('@/components/RiskMap'), { ssr: false })
@@ -16,6 +17,14 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const userLocation = useGeolocation()
+
+  useEffect(() => {
+    // Set country from geolocation once available
+    if (userLocation.country && selectedCountry === 'Germany') {
+      setSelectedCountry(userLocation.country);
+    }
+  }, [userLocation.country]);
 
   useEffect(() => {
     // Update time every minute
@@ -114,7 +123,8 @@ export default function Dashboard() {
         <div className="mb-6">
           <CountrySelector 
             selectedCountry={selectedCountry} 
-            onCountryChange={setSelectedCountry} 
+            onCountryChange={setSelectedCountry}
+            initialCity={userLocation.city}
           />
         </div>
 
