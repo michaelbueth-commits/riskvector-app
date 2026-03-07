@@ -30,14 +30,8 @@ export default function Dashboard() {
 
   // Filter alerts for selected country
   const countryAlerts = alerts.filter(alert => {
-    const alertCountry = alert.country?.toLowerCase() || ''
-    const alertLocation = alert.location?.toLowerCase() || ''
-    const selected = selectedCountry.toLowerCase()
-    
-    // Match if country name appears in alert country or location
-    return alertCountry.includes(selected) || 
-           alertLocation.includes(selected) ||
-           selected.includes(alertCountry)
+    // Strict matching for country
+    return alert.country?.toLowerCase() === selectedCountry.toLowerCase()
   })
 
   const fetchRiskData = async (country: string) => {

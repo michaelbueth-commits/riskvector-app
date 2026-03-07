@@ -79,7 +79,7 @@ export default function Home() {
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 animate-fade-in-up delay-100">
               Global Risk Intelligence
               <br />
-              <span className="text-gradient-gold">For Enterprise Travelers</span>
+              <span className="text-gradient-gold">For The Modern Traveler</span>
             </h1>
             <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed animate-fade-in-up delay-200">
               Real-time threat monitoring, predictive analytics, and instant alerts across 195 countries. 
