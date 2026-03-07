@@ -1,6 +1,29 @@
 import { NextResponse } from 'next/server'
-import { fetchCountryAlerts, getAlertStats } from '@/lib/alertsService'
+import { fetchCountryAlerts, getAlertStats, RealAlert } from '@/lib/alertsService'
 import { countries, getCountryByName } from '@/lib/countries'
+
+// Helper function to fetch OpenWeatherMap alerts
+async function fetchOpenWeatherAlerts(lat: number, lon: number): Promise<RealAlert[]> {
+  const apiKey = process.env.OPENWEATHER_API_KEY;
+  if (!apiKey) return [];
+  try {
+    const response = await fetch(`https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=current,minutely,hourly,daily&appid=${apiKey}`, { next: { revalidate: 600 } });
+    if (!response.ok) return [];
+    const data = await response.json();
+    if (!data.alerts || !Array.isArray(data.alerts)) return [];
+    return data.alerts.map((alert: any) => ({
+      id: `owm-${lat}-${lon}-${alert.start}`, type: 'medium', category: 'Weather',
+      title: `${alert.event} Warning`, location: `${data.timezone}`, country: 'Unknown',
+      timestamp: new Date(alert.start * 1000).toISOString(), description: alert.description,
+      source: 'OpenWeatherMap', sourceId: 'OpenWeatherMap One Call API', lat, lng: lon,
+      severity: 'Moderate', url: 'https://openweathermap.org/weather-alerts'
+    }));
+  } catch (error) {
+    console.error('OWM fetch in API route error:', error);
+    return [];
+  }
+}
+
 
 // High-risk conflict zones with known elevated risk levels
 const CONFLICT_ZONES: Record<string, { level: string; score: number; advisory: string }> = {
@@ -98,8 +121,19 @@ export async function GET(
   }
   
   try {
-    // Fetch real alerts for this country
-    const alerts = await fetchCountryAlerts(country.name)
+    // Fetch real alerts for this country from main sources
+    let alerts = await fetchCountryAlerts(country.name)
+    
+    // Fetch weather alerts for this country's coordinates
+    const weatherAlerts = await fetchOpenWeatherAlerts(country.lat, country.lng);
+    if (weatherAlerts.length > 0) {
+      // Add country name to weather alerts and push them
+      const localizedWeatherAlerts = weatherAlerts.map(alert => ({ ...alert, country: country.name }));
+      alerts.push(...localizedWeatherAlerts);
+      // Re-sort alerts by timestamp
+      alerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    }
+
     const stats = getAlertStats(alerts)
     
     // Calculate risk scores based on real data

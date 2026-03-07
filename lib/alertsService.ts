@@ -145,6 +145,47 @@ function extractCountryFromPlace(place: string): string {
   return countryMap[lastPart] || lastPart || 'Unknown'
 }
 
+// OpenWeatherMap - Global Weather Alerts
+async function fetchOpenWeatherAlerts(lat: number, lon: number): Promise<RealAlert[]> {
+  const apiKey = process.env.OPENWEATHER_API_KEY;
+  if (!apiKey) {
+    console.warn('OpenWeatherMap API key not found. Skipping.');
+    return [];
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=current,minutely,hourly,daily&appid=${apiKey}`,
+      { next: { revalidate: 600 } } // Cache 10 minutes
+    );
+
+    if (!response.ok) return [];
+    const data = await response.json();
+
+    if (!data.alerts || !Array.isArray(data.alerts)) return [];
+
+    return data.alerts.map((alert: any) => ({
+      id: `owm-${lat}-${lon}-${alert.start}`,
+      type: 'medium', // OWM alerts don't have a clear severity level, default to medium
+      category: 'Weather',
+      title: `${alert.event} Warning`,
+      location: `${data.timezone}`,
+      country: 'Unknown', // OneCall API doesn't return country name directly
+      timestamp: new Date(alert.start * 1000).toISOString(),
+      description: alert.description,
+      source: 'OpenWeatherMap',
+      sourceId: 'OpenWeatherMap One Call API',
+      lat,
+      lng: lon,
+      severity: 'Moderate',
+      url: 'https://openweathermap.org/weather-alerts'
+    }));
+  } catch (error) {
+    console.error('OpenWeatherMap fetch error:', error);
+    return [];
+  }
+}
+
 // GDELT - Geopolitical Events (Conflicts, Protests, Violence)
 async function fetchGDELTAlerts(): Promise<RealAlert[]> {
   try {
