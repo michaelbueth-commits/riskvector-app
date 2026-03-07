@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function Home() {
   return (
@@ -41,6 +42,7 @@ export default function Home() {
 
             {/* CTA Buttons */}
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <Link href="/dashboard" className="text-sm text-gray-400 hover:text-white transition-colors hidden sm:block">
                 Sign In
               </Link>
