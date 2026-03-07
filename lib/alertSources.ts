@@ -192,6 +192,20 @@ export const alertSources: AlertSource[] = [
     officialUrl: 'https://www.who.int/emergencies/disease-outbreak-news'
   },
 
+  // Geopolitical - GDELT
+  {
+    id: 'gdelt',
+    name: 'GDELT Project',
+    country: 'Global',
+    type: 'security',
+    url: 'https://www.gdeltproject.org',
+    apiEndpoint: 'https://api.gdeltproject.org/api/v2/doc/doc',
+    format: 'json',
+    updateFrequency: '15 minutes',
+    description: 'Global events, conflicts, protests, and geopolitical monitoring in real-time',
+    officialUrl: 'https://www.gdeltproject.org'
+  },
+
   // Volcanoes - Smithsonian
   {
     id: 'smithsonian-volcano',

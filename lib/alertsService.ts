@@ -145,6 +145,82 @@ function extractCountryFromPlace(place: string): string {
   return countryMap[lastPart] || lastPart || 'Unknown'
 }
 
+// GDELT - Geopolitical Events (Conflicts, Protests, Violence)
+async function fetchGDELTAlerts(): Promise<RealAlert[]> {
+  try {
+    // GDELT API - Free, no registration
+    // Query for conflict/violence events in last 24 hours
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '')
+    const query = encodeURIComponent('(conflict OR war OR attack OR protest OR violence OR military OR invasion OR bombing) tone<-5')
+    
+    const response = await fetch(
+      `https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=artlist&format=json&maxrecords=20&startdatetime=${yesterday}000000&enddatetime=${new Date().toISOString().split('T')[0].replace(/-/g, '')}235959`,
+      {
+        next: { revalidate: 900 }, // Cache 15 minutes
+        headers: {
+          'User-Agent': 'RiskVector/1.0'
+        }
+      }
+    )
+    
+    if (!response.ok) return []
+    
+    const data = await response.json()
+    
+    if (!data.articles || !Array.isArray(data.articles)) return []
+    
+    return data.articles.map((article: any) => {
+      // Extract country from sourcecountry or title
+      const country = article.sourcecountry || extractCountryFromText(article.title || '')
+      const tone = article.tone || 0
+      
+      return {
+        id: `gdelt-${Buffer.from(article.url || '').toString('base64').substring(0, 16)}`,
+        type: tone < -10 ? 'critical' : tone < -5 ? 'high' : 'medium',
+        category: 'Security',
+        title: article.title || 'Geopolitical Event',
+        location: country,
+        country: country,
+        timestamp: article.seendate || new Date().toISOString(),
+        description: article.title || 'Geopolitical event detected via GDELT global monitoring.',
+        source: 'GDELT',
+        sourceId: 'GDELT Project - Global Events Database',
+        severity: tone < -10 ? 'Critical' : tone < -5 ? 'High' : 'Moderate',
+        url: article.url
+      }
+    })
+  } catch (error) {
+    console.error('GDELT fetch error:', error)
+    return []
+  }
+}
+
+// Helper to extract country from text
+function extractCountryFromText(text: string): string {
+  const countryKeywords: Record<string, string[]> = {
+    'Ukraine': ['ukraine', 'kyiv', 'donbas', 'crimea', 'kharkiv', 'odon'],
+    'Russia': ['russia', 'moscow', 'kremlin', 'russian'],
+    'Israel': ['israel', 'tel aviv', 'jerusalem', 'gaza', 'west bank'],
+    'Palestine': ['palestine', 'gaza', 'hamas', 'west bank'],
+    'Syria': ['syria', 'damascus', 'aleppo'],
+    'Yemen': ['yemen', 'sana', 'aden'],
+    'Myanmar': ['myanmar', 'burma', 'yangon'],
+    'Afghanistan': ['afghanistan', 'kabul', 'taliban'],
+    'Sudan': ['sudan', 'khartoum', 'darfur'],
+    'Ethiopia': ['ethiopia', 'addis ababa', 'tigray'],
+  }
+  
+  const lowerText = text.toLowerCase()
+  
+  for (const [country, keywords] of Object.entries(countryKeywords)) {
+    if (keywords.some(kw => lowerText.includes(kw))) {
+      return country
+    }
+  }
+  
+  return 'Unknown'
+}
+
 // P2P Quake Japan - Free API, no registration
 async function fetchJapanAlerts(): Promise<RealAlert[]> {
   try {
@@ -288,15 +364,16 @@ export async function fetchAllRealAlerts(): Promise<RealAlert[]> {
   const alerts: RealAlert[] = []
   
   // Fetch from all sources in parallel
-  const [gdacsAlerts, usgsAlerts, noaaAlerts, japanAlerts, volcanoAlerts] = await Promise.all([
+  const [gdacsAlerts, usgsAlerts, noaaAlerts, japanAlerts, volcanoAlerts, gdeltAlerts] = await Promise.all([
     fetchGDACSAlerts(),
     fetchUSGSAlerts(),
     fetchNOAAAlerts(),
     fetchJapanAlerts(),
     fetchVolcanoAlerts(),
+    fetchGDELTAlerts(),
   ])
   
-  alerts.push(...gdacsAlerts, ...usgsAlerts, ...noaaAlerts, ...japanAlerts, ...volcanoAlerts)
+  alerts.push(...gdacsAlerts, ...usgsAlerts, ...noaaAlerts, ...japanAlerts, ...volcanoAlerts, ...gdeltAlerts)
   
   // Sort by timestamp (newest first)
   alerts.sort((a, b) => 

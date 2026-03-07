@@ -2,11 +2,71 @@ import { NextResponse } from 'next/server'
 import { fetchCountryAlerts, getAlertStats } from '@/lib/alertsService'
 import { countries, getCountryByName } from '@/lib/countries'
 
+// High-risk conflict zones with known elevated risk levels
+const CONFLICT_ZONES: Record<string, { level: string; score: number; advisory: string }> = {
+  'Ukraine': {
+    level: 'critical',
+    score: 95,
+    advisory: 'CRITICAL: Active armed conflict. Russian military invasion ongoing since February 2022. Avoid all travel. Missile strikes, ground combat, and infrastructure attacks occur regularly.'
+  },
+  'Russia': {
+    level: 'high',
+    score: 75,
+    advisory: 'HIGH RISK: Armed conflict with Ukraine. International sanctions. Political instability. Restricted travel for foreign nationals.'
+  },
+  'Israel': {
+    level: 'high',
+    score: 70,
+    advisory: 'HIGH RISK: Armed conflict with Hamas and regional tensions. Rocket attacks, military operations. Exercise extreme caution.'
+  },
+  'Palestine': {
+    level: 'critical',
+    score: 95,
+    advisory: 'CRITICAL: Active armed conflict. Israeli military operations. Avoid all travel to Gaza. West Bank has elevated risk.'
+  },
+  'Syria': {
+    level: 'critical',
+    score: 98,
+    advisory: 'CRITICAL: Civil war ongoing since 2011. Airstrikes, ground combat, terrorism. No safe areas. DO NOT TRAVEL.'
+  },
+  'Yemen': {
+    level: 'critical',
+    score: 97,
+    advisory: 'CRITICAL: Civil war, Saudi-led coalition airstrikes, cholera outbreak. Humanitarian crisis. DO NOT TRAVEL.'
+  },
+  'Afghanistan': {
+    level: 'critical',
+    score: 92,
+    advisory: 'CRITICAL: Taliban control. Terrorism, kidnapping risk. Economic collapse. Humanitarian crisis. DO NOT TRAVEL.'
+  },
+  'Myanmar': {
+    level: 'high',
+    score: 75,
+    advisory: 'HIGH RISK: Civil war since 2021 coup. Armed resistance, airstrikes. Political prisoners. Exercise extreme caution.'
+  },
+  'Sudan': {
+    level: 'critical',
+    score: 90,
+    advisory: 'CRITICAL: Civil war since April 2023. RSF vs SAF conflict. Ethnic violence. DO NOT TRAVEL.'
+  },
+  'Haiti': {
+    level: 'critical',
+    score: 85,
+    advisory: 'CRITICAL: Gang violence, kidnappings, civil unrest. Government collapse. Humanitarian crisis.'
+  },
+}
+
 // Calculate risk score based on real alert data
-function calculateRiskScore(alerts: any[], category: string): number {
+function calculateRiskScore(alerts: any[], category: string, country: string): number {
   const categoryAlerts = alerts.filter(a => a.category === category)
   
-  if (categoryAlerts.length === 0) return Math.floor(Math.random() * 20) + 10 // Base risk if no alerts
+  if (categoryAlerts.length === 0) {
+    // Check if country is in conflict zones
+    if (CONFLICT_ZONES[country] && category === 'Security') {
+      return CONFLICT_ZONES[country].score
+    }
+    return Math.floor(Math.random() * 20) + 10 // Base risk if no alerts
+  }
   
   let score = 0
   categoryAlerts.forEach(alert => {
@@ -43,36 +103,51 @@ export async function GET(
     const stats = getAlertStats(alerts)
     
     // Calculate risk scores based on real data
-    const overallScore = Math.min(100, 
-      alerts.filter(a => a.type === 'critical').length * 30 +
-      alerts.filter(a => a.type === 'high').length * 20 +
-      alerts.filter(a => a.type === 'medium').length * 10 +
-      Math.floor(Math.random() * 10) // Base risk
-    )
+    // Check for conflict zone override first
+    const conflictInfo = CONFLICT_ZONES[country.name]
     
-    const weatherScore = calculateRiskScore(alerts, 'Weather') || 
-      calculateRiskScore(alerts, 'Tropical Cyclone') ||
+    let overallScore: number
+    let advisoryLevel: string
+    let advisoryText: string
+    
+    if (conflictInfo) {
+      // Use conflict zone data for known war zones
+      overallScore = conflictInfo.score
+      advisoryLevel = conflictInfo.level
+      advisoryText = conflictInfo.advisory
+    } else {
+      // Calculate from alerts
+      overallScore = Math.min(100, 
+        alerts.filter(a => a.type === 'critical').length * 30 +
+        alerts.filter(a => a.type === 'high').length * 20 +
+        alerts.filter(a => a.type === 'medium').length * 10 +
+        Math.floor(Math.random() * 10) // Base risk
+      )
+      
+      // Determine advisory level based on real alerts
+      advisoryLevel = 'low'
+      advisoryText = 'No significant threats detected. Normal travel conditions.'
+      
+      if (alerts.some(a => a.type === 'critical')) {
+        advisoryLevel = 'critical'
+        advisoryText = 'CRITICAL: Active emergency situations detected. Avoid non-essential travel.'
+      } else if (alerts.some(a => a.type === 'high')) {
+        advisoryLevel = 'high'
+        advisoryText = 'HIGH RISK: Significant threats detected. Exercise extreme caution.'
+      } else if (alerts.some(a => a.type === 'medium')) {
+        advisoryLevel = 'medium'
+        advisoryText = 'MODERATE RISK: Some alerts active. Stay informed and take precautions.'
+      }
+    }
+    
+    const weatherScore = calculateRiskScore(alerts, 'Weather', country.name) || 
+      calculateRiskScore(alerts, 'Tropical Cyclone', country.name) ||
       Math.floor(Math.random() * 30) + 10
     
-    const politicalScore = Math.floor(Math.random() * 30) + 15 // Would need GDELT integration
-    const healthScore = calculateRiskScore(alerts, 'Health') || Math.floor(Math.random() * 20) + 10
-    const infrastructureScore = calculateRiskScore(alerts, 'Earthquake') || 
-      calculateRiskScore(alerts, 'Infrastructure') || Math.floor(Math.random() * 25) + 10
-    
-    // Determine advisory level based on real alerts
-    let advisoryLevel = 'low'
-    let advisoryText = 'No significant threats detected. Normal travel conditions.'
-    
-    if (alerts.some(a => a.type === 'critical')) {
-      advisoryLevel = 'critical'
-      advisoryText = 'CRITICAL: Active emergency situations detected. Avoid non-essential travel.'
-    } else if (alerts.some(a => a.type === 'high')) {
-      advisoryLevel = 'high'
-      advisoryText = 'HIGH RISK: Significant threats detected. Exercise extreme caution.'
-    } else if (alerts.some(a => a.type === 'medium')) {
-      advisoryLevel = 'medium'
-      advisoryText = 'MODERATE RISK: Some alerts active. Stay informed and take precautions.'
-    }
+    const politicalScore = calculateRiskScore(alerts, 'Security', country.name)
+    const healthScore = calculateRiskScore(alerts, 'Health', country.name) || Math.floor(Math.random() * 20) + 10
+    const infrastructureScore = calculateRiskScore(alerts, 'Earthquake', country.name) || 
+      calculateRiskScore(alerts, 'Infrastructure', country.name) || Math.floor(Math.random() * 25) + 10
     
     return NextResponse.json({
       country: country.name,
