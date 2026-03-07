@@ -123,6 +123,18 @@ export const alertSources: AlertSource[] = [
     description: 'Japan earthquake, tsunami, and weather alerts (J-ALERT data)',
     officialUrl: 'https://www.jma.go.jp'
   },
+  {
+    id: 'p2pquake',
+    name: 'P2P Earthquake Information (Japan)',
+    country: 'Japan',
+    type: 'geological',
+    url: 'https://www.p2pquake.net',
+    apiEndpoint: 'https://api.p2pquake.net/v2/history',
+    format: 'json',
+    updateFrequency: 'Real-time',
+    description: 'Real-time earthquake data via P2P network, includes JMA data',
+    officialUrl: 'https://www.p2pquake.net'
+  },
 
   // Australia
   {

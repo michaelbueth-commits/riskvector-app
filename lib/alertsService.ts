@@ -145,6 +145,102 @@ function extractCountryFromPlace(place: string): string {
   return countryMap[lastPart] || lastPart || 'Unknown'
 }
 
+// P2P Quake Japan - Free API, no registration
+async function fetchJapanAlerts(): Promise<RealAlert[]> {
+  try {
+    // P2P Earthquake Information API - Free, no registration
+    const response = await fetch('https://api.p2pquake.net/v2/history?codes=551&codes=552&limit=10', {
+      next: { revalidate: 60 } // Cache 1 minute
+    })
+    
+    if (!response.ok) return []
+    
+    const data = await response.json()
+    
+    return (data || []).map((event: any) => {
+      const magnitude = event.earthquake?.hypocenter?.magnitude || 0
+      const depth = event.earthquake?.hypocenter?.depth || 0
+      const location = event.earthquake?.hypocenter?.name || 'Japan'
+      
+      return {
+        id: `japan-p2p-${event.id || Math.random().toString(36).substr(2, 9)}`,
+        type: magnitude >= 6 ? 'critical' : magnitude >= 5 ? 'high' : magnitude >= 4 ? 'medium' : 'low',
+        category: 'Earthquake',
+        title: `M${magnitude.toFixed(1)} - ${location}, Japan`,
+        location: `${location}, Japan`,
+        country: 'Japan',
+        timestamp: new Date(event.time || Date.now()).toISOString(),
+        description: `Magnitude ${magnitude.toFixed(1)} earthquake at ${depth}km depth in ${location}. Source: JMA via P2P Quake Network.`,
+        source: 'P2PQuake/JMA',
+        sourceId: 'Japan Meteorological Agency via P2P Quake',
+        lat: event.earthquake?.hypocenter?.latitude,
+        lng: event.earthquake?.hypocenter?.longitude,
+        severity: magnitude >= 6 ? 'Critical' : magnitude >= 5 ? 'High' : 'Moderate'
+      }
+    })
+  } catch (error) {
+    console.error('Japan P2P Quake fetch error:', error)
+    return []
+  }
+}
+
+// Smithsonian Global Volcanism Program - Free RSS
+async function fetchVolcanoAlerts(): Promise<RealAlert[]> {
+  try {
+    const response = await fetch('https://volcano.si.edu/news/WeeklyVolcanoRSS.xml', {
+      next: { revalidate: 3600 } // Cache 1 hour (weekly updates)
+    })
+    
+    if (!response.ok) return []
+    
+    const text = await response.text()
+    
+    // Parse RSS XML
+    const alerts: RealAlert[] = []
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g
+    let match
+    
+    while ((match = itemRegex.exec(text)) !== null) {
+      const item = match[1]
+      
+      const titleMatch = item.match(/<title>([\s\S]*?)<\/title>/)
+      const descMatch = item.match(/<description>([\s\S]*?)<\/description>/)
+      const linkMatch = item.match(/<link>([\s\S]*?)<\/link>/)
+      
+      if (titleMatch) {
+        const title = titleMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '')
+        const description = descMatch ? descMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]*>/g, '').substring(0, 300) : ''
+        const url = linkMatch ? linkMatch[1] : ''
+        
+        // Extract country from title (e.g., "Ambae (Vanuatu)")
+        const countryMatch = title.match(/\(([^)]+)\)/)
+        const country = countryMatch ? countryMatch[1] : 'Unknown'
+        
+        alerts.push({
+          id: `volcano-${Math.random().toString(36).substr(2, 9)}`,
+          type: title.toLowerCase().includes('new eruptive') ? 'high' : 
+                title.toLowerCase().includes('continuing') ? 'medium' : 'low',
+          category: 'Volcano',
+          title: `Volcanic Activity: ${title}`,
+          location: country,
+          country: country,
+          timestamp: new Date().toISOString(),
+          description: description || `Volcanic activity reported at ${title}. See Smithsonian GVP for details.`,
+          source: 'Smithsonian GVP',
+          sourceId: 'Smithsonian Global Volcanism Program',
+          severity: title.toLowerCase().includes('new eruptive') ? 'High' : 'Moderate',
+          url: url
+        })
+      }
+    }
+    
+    return alerts.slice(0, 10)
+  } catch (error) {
+    console.error('Volcano RSS fetch error:', error)
+    return []
+  }
+}
+
 // NOAA Weather Alerts (US only)
 async function fetchNOAAAlerts(): Promise<RealAlert[]> {
   try {
@@ -192,13 +288,15 @@ export async function fetchAllRealAlerts(): Promise<RealAlert[]> {
   const alerts: RealAlert[] = []
   
   // Fetch from all sources in parallel
-  const [gdacsAlerts, usgsAlerts, noaaAlerts] = await Promise.all([
+  const [gdacsAlerts, usgsAlerts, noaaAlerts, japanAlerts, volcanoAlerts] = await Promise.all([
     fetchGDACSAlerts(),
     fetchUSGSAlerts(),
     fetchNOAAAlerts(),
+    fetchJapanAlerts(),
+    fetchVolcanoAlerts(),
   ])
   
-  alerts.push(...gdacsAlerts, ...usgsAlerts, ...noaaAlerts)
+  alerts.push(...gdacsAlerts, ...usgsAlerts, ...noaaAlerts, ...japanAlerts, ...volcanoAlerts)
   
   // Sort by timestamp (newest first)
   alerts.sort((a, b) => 

@@ -22,9 +22,11 @@ export async function GET() {
         countries: stats.byCountry
       },
       sources: [
-        { name: 'GDACS', status: 'active', type: 'Global Disasters' },
-        { name: 'USGS', status: 'active', type: 'Earthquakes' },
-        { name: 'NOAA NWS', status: 'active', type: 'Weather (US)' }
+        { name: 'GDACS', status: 'active', type: 'Global Disasters', coverage: 'Worldwide' },
+        { name: 'USGS', status: 'active', type: 'Earthquakes', coverage: 'Worldwide' },
+        { name: 'NOAA NWS', status: 'active', type: 'Weather (US)', coverage: 'United States' },
+        { name: 'P2PQuake/JMA', status: 'active', type: 'Earthquakes', coverage: 'Japan' },
+        { name: 'Smithsonian GVP', status: 'active', type: 'Volcanoes', coverage: 'Worldwide' }
       ],
       lastUpdate: new Date().toISOString(),
       note: 'Real-time data from official sources. No mock or demo data.'
