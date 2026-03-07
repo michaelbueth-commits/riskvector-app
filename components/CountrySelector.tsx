@@ -6,18 +6,15 @@ import { countries } from '@/lib/countries'
 interface CountrySelectorProps {
   selectedCountry: string
   onCountryChange: (country: string) => void
-  initialCity?: string
+  city: string
+  onCityChange: (city: string) => void
+  isGeocoding: boolean
 }
 
-export default function CountrySelector({ selectedCountry, onCountryChange, initialCity = '' }: CountrySelectorProps) {
+export default function CountrySelector({ selectedCountry, onCountryChange, city, onCityChange, isGeocoding }: CountrySelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [city, setCity] = useState(initialCity)
   const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setCity(initialCity)
-  }, [initialCity])
 
   const selectedCountryData = countries.find(c => c.name === selectedCountry)
 
@@ -170,7 +167,7 @@ export default function CountrySelector({ selectedCountry, onCountryChange, init
           type="text"
           placeholder="Enter city (optional)..."
           value={city}
-          onChange={(e) => setCity(e.target.value)}
+          onChange={(e) => onCityChange(e.target.value)}
           className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition"
         />
       </div>

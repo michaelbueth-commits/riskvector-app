@@ -1,30 +1,75 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import RiskScoreCard from '@/components/RiskScoreCard'
 import AlertFeed from '@/components/AlertFeed'
 import CountrySelector from '@/components/CountrySelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import useGeolocation from '@/hooks/useGeolocation'
+import { geocodeCity } from '@/lib/geocodingService'
+import { RealAlert } from '@/lib/alertsService'
+import { useDebounce } from 'use-debounce';
 
 // Dynamically import Leaflet components (client-side only)
 const RiskMap = dynamic(() => import('@/components/RiskMap'), { ssr: false })
 
 export default function Dashboard() {
   const [selectedCountry, setSelectedCountry] = useState('Germany')
+  const [selectedCity, setSelectedCity] = useState('')
   const [riskData, setRiskData] = useState<any>(null)
-  const [alerts, setAlerts] = useState<any[]>([])
+  const [alerts, setAlerts] = useState<RealAlert[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isGeocoding, setIsGeocoding] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const userLocation = useGeolocation()
+  
+  const [debouncedCity] = useDebounce(selectedCity, 1000); // Debounce city input
 
   useEffect(() => {
-    // Set country from geolocation once available
-    if (userLocation.country && selectedCountry === 'Germany') {
+    // Set country and city from geolocation once available
+    if (userLocation.country && !riskData) { // Only on initial load
       setSelectedCountry(userLocation.country);
+      if (userLocation.city !== 'Unknown') {
+        setSelectedCity(userLocation.city);
+      }
     }
-  }, [userLocation.country]);
+  }, [userLocation, riskData]);
+
+  // Main data fetching logic
+  const fetchData = useCallback(async (country: string, city: string) => {
+    setIsLoading(true);
+
+    // Fetch risk data for the country
+    const riskRes = await fetch(`/api/risk/${country}`);
+    const riskJson = await riskRes.json();
+    setRiskData(riskJson);
+
+    // If a city is specified, geocode it and fetch local alerts
+    if (city) {
+      setIsGeocoding(true);
+      const geoResult = await geocodeCity(city, riskJson.countryCode);
+      setIsGeocoding(false);
+      
+      if (geoResult) {
+        // Here you would typically fetch alerts based on coordinates
+        // For now, we'll continue to filter the global alerts for demo purposes
+        // In a real app, this would be: fetchAlertsForCoordinates(geoResult.lat, geoResult.lon)
+      }
+    }
+    
+    // Fetch all alerts to be filtered on the client
+    const alertsRes = await fetch('/api/alerts');
+    const alertsJson = await alertsRes.json();
+    setAlerts(alertsJson.alerts || []);
+    
+    setIsLoading(false);
+  }, []);
+
+  // Trigger data fetch when country or debounced city changes
+  useEffect(() => {
+    fetchData(selectedCountry, debouncedCity);
+  }, [selectedCountry, debouncedCity, fetchData]);
 
   useEffect(() => {
     // Update time every minute
@@ -32,38 +77,19 @@ export default function Dashboard() {
     return () => clearInterval(timer)
   }, [])
 
-  useEffect(() => {
-    fetchRiskData(selectedCountry)
-    fetchAlerts()
-  }, [selectedCountry])
-
-  // Filter alerts for selected country
-  const countryAlerts = alerts.filter(alert => {
-    // Strict matching for country
-    return alert.country?.toLowerCase() === selectedCountry.toLowerCase()
+  // Filter alerts for the selected location (country and city)
+  const locationAlerts = alerts.filter(alert => {
+    const alertCountry = alert.country?.toLowerCase() || ''
+    const alertLocation = alert.location?.toLowerCase() || ''
+    const countryMatch = alertCountry === selectedCountry.toLowerCase();
+    
+    if (!debouncedCity) {
+      return countryMatch;
+    }
+    
+    // If city is specified, check if it's in the location string
+    return countryMatch && alertLocation.includes(debouncedCity.toLowerCase());
   })
-
-  const fetchRiskData = async (country: string) => {
-    try {
-      const res = await fetch(`/api/risk/${country}`)
-      const data = await res.json()
-      setRiskData(data)
-    } catch (error) {
-      console.error('Failed to fetch risk data:', error)
-    }
-  }
-
-  const fetchAlerts = async () => {
-    try {
-      const res = await fetch('/api/alerts')
-      const data = await res.json()
-      setAlerts(data.alerts || [])
-      setIsLoading(false)
-    } catch (error) {
-      console.error('Failed to fetch alerts:', error)
-      setIsLoading(false)
-    }
-  }
 
   return (
     <div className="min-h-screen gradient-mesh">
@@ -119,12 +145,14 @@ export default function Dashboard() {
           <p className="text-gray-400">Real-time threat monitoring across 195 countries</p>
         </div>
 
-        {/* Country Selector */}
+        {/* Country Selector & City Search */}
         <div className="mb-6">
           <CountrySelector 
             selectedCountry={selectedCountry} 
             onCountryChange={setSelectedCountry}
-            initialCity={userLocation.city}
+            city={selectedCity}
+            onCityChange={setSelectedCity}
+            isGeocoding={isGeocoding}
           />
         </div>
 
@@ -190,14 +218,18 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-xl font-bold">Live Alerts</h2>
-                  <p className="text-xs text-gray-500 mt-1">Showing alerts for {selectedCountry}</p>
+                  <p className="text-xs text-gray-500 mt-1">Showing alerts for {debouncedCity || selectedCountry}</p>
                 </div>
-                <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold">
-                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                  {countryAlerts.length} Active
+                <span className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${
+                  locationAlerts.length > 0
+                    ? 'bg-red-500/10 border border-red-500/30 text-red-400'
+                    : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${locationAlerts.length > 0 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
+                  {locationAlerts.length} Active
                 </span>
               </div>
-              <AlertFeed alerts={countryAlerts} isLoading={isLoading} />
+              <AlertFeed alerts={locationAlerts} isLoading={isLoading} />
             </div>
           </div>
         </div>

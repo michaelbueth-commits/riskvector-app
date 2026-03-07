@@ -405,16 +405,17 @@ export async function fetchAllRealAlerts(): Promise<RealAlert[]> {
   const alerts: RealAlert[] = []
   
   // Fetch from all sources in parallel
-  const [gdacsAlerts, usgsAlerts, noaaAlerts, japanAlerts, volcanoAlerts, gdeltAlerts] = await Promise.all([
+  const [gdacsAlerts, usgsAlerts, noaaAlerts, japanAlerts, volcanoAlerts, gdeltAlerts, reliefwebAlerts] = await Promise.all([
     fetchGDACSAlerts(),
     fetchUSGSAlerts(),
     fetchNOAAAlerts(),
     fetchJapanAlerts(),
     fetchVolcanoAlerts(),
     fetchGDELTAlerts(),
+    fetchReliefWebAlerts(),
   ])
   
-  alerts.push(...gdacsAlerts, ...usgsAlerts, ...noaaAlerts, ...japanAlerts, ...volcanoAlerts, ...gdeltAlerts)
+  alerts.push(...gdacsAlerts, ...usgsAlerts, ...noaaAlerts, ...japanAlerts, ...volcanoAlerts, ...gdeltAlerts, ...reliefwebAlerts)
   
   // Sort by timestamp (newest first)
   alerts.sort((a, b) => 
@@ -433,6 +434,79 @@ export async function fetchCountryAlerts(countryName: string): Promise<RealAlert
     alert.location.toLowerCase().includes(countryName.toLowerCase())
   )
 }
+
+// Fetch alerts for specific coordinates
+export async function fetchAlertsForCoordinates(lat: number, lng: number): Promise<RealAlert[]> {
+  const allAlerts = await fetchAllRealAlerts();
+  
+  // Find alerts within a certain radius (e.g., 200km)
+  const radiusKm = 200;
+  
+  return allAlerts.filter(alert => {
+    if (!alert.lat || !alert.lng) return false;
+    
+    const distance = getDistance(lat, lng, alert.lat, alert.lng);
+    return distance <= radiusKm;
+  });
+}
+
+// ReliefWeb - Humanitarian and Disaster Alerts
+async function fetchReliefWebAlerts(): Promise<RealAlert[]> {
+  try {
+    const response = await fetch(
+      'https://api.reliefweb.int/v1/disasters?appname=riskvector&profile=list&preset=latest&slim=1&limit=50&query[value]=status:alert OR status:current',
+      { next: { revalidate: 900 } } // Cache 15 minutes
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+
+    return (data.data || []).map((item: any) => {
+      const fields = item.fields;
+      const country = fields.country?.[0]?.name || 'Unknown';
+      
+      let type: 'critical' | 'high' | 'medium' | 'low' = 'medium';
+      if (fields.status === 'alert') type = 'high';
+      if (fields.name.toLowerCase().includes('red alert') || fields.name.toLowerCase().includes('major')) type = 'critical';
+
+      return {
+        id: `reliefweb-${item.id}`,
+        type,
+        category: fields.type?.[0]?.name || 'Humanitarian',
+        title: fields.name,
+        location: country,
+        country: country,
+        timestamp: fields.date?.created || new Date().toISOString(),
+        description: `Humanitarian situation update for ${country}. Status: ${fields.status}.`,
+        source: 'ReliefWeb',
+        sourceId: 'ReliefWeb (UN OCHA)',
+        url: fields.url,
+      };
+    });
+  } catch (error) {
+    console.error('ReliefWeb fetch error:', error);
+    return [];
+  }
+}
+
+// Haversine formula to calculate distance between two lat/lng points
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2-lat1);
+  const dLon = deg2rad(lon2-lon1); 
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ; 
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  const d = R * c; // Distance in km
+  return d;
+}
+
+function deg2rad(deg: number) {
+  return deg * (Math.PI/180)
+}
+
 
 // Get alert statistics
 export function getAlertStats(alerts: RealAlert[]): {

@@ -75,29 +75,19 @@ export default function RiskMap({ alerts, selectedCountry }: RiskMapProps) {
   }, [alerts])
 
   useEffect(() => {
-    if (!mapRef.current || !selectedCountry) return
+    if (!mapRef.current || !selectedCountry) return;
 
-    // Zoom to country (simplified - would use GeoJSON in production)
-    const countryCoords: Record<string, [number, number, number]> = {
-      'Germany': [51.1657, 10.4515, 6],
-      'United States': [37.0902, -95.7129, 4],
-      'France': [46.2276, 2.2137, 6],
-      'United Kingdom': [55.3781, -3.4360, 6],
-      'Spain': [40.4637, -3.7492, 6],
-      'Italy': [41.8719, 12.5674, 6],
-      'Japan': [36.2048, 138.2529, 6],
-      'Australia': [-25.2744, 133.7751, 4],
-      'Canada': [56.1304, -106.3468, 4],
-      'Brazil': [-14.2350, -51.9253, 4],
-    }
+    // Zoom to country using the full countries list
+    const countryData = countries.find(c => c.name === selectedCountry);
 
-    const coords = countryCoords[selectedCountry]
-    if (coords) {
-      mapRef.current.flyTo([coords[0], coords[1]], coords[2], {
+    if (countryData) {
+      // Determine zoom level based on country size or continent
+      const zoom = countryData.continent === 'Europe' ? 6 : 4;
+      mapRef.current.flyTo([countryData.lat, countryData.lng], zoom, {
         duration: 1.5
-      })
+      });
     }
-  }, [selectedCountry])
+  }, [selectedCountry]);
 
   return <div ref={mapContainerRef} className="w-full h-full" />
 }
