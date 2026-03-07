@@ -6,8 +6,13 @@ interface Alert {
   category: string
   title: string
   location: string
+  country?: string
   timestamp: string
   description: string
+  source?: string
+  sourceId?: string
+  severity?: string
+  url?: string
 }
 
 interface AlertFeedProps {
@@ -64,6 +69,21 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
     return date.toLocaleDateString()
   }
 
+  const getCategoryIcon = (category: string) => {
+    const icons: Record<string, string> = {
+      'Earthquake': '🌋',
+      'Tropical Cyclone': '🌀',
+      'Flood': '🌊',
+      'Volcano': '🌋',
+      'Weather': '⛈️',
+      'Weather Alert': '⛈️',
+      'Security': '⚠️',
+      'Health': '🏥',
+      'Disaster': '🚨',
+    }
+    return icons[category] || '⚠️'
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -100,6 +120,7 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
               transition-all duration-300 hover:scale-[1.01] cursor-pointer
               group relative overflow-hidden
             `}
+            onClick={() => alert.url && window.open(alert.url, '_blank')}
           >
             {/* Animated pulse for critical alerts */}
             {styles.pulse && (
@@ -112,6 +133,7 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${styles.badge}`}>
                   {alert.type.toUpperCase()}
                 </span>
+                <span className="text-sm">{getCategoryIcon(alert.category)}</span>
               </div>
               <span className="text-xs text-gray-500">{formatTime(alert.timestamp)}</span>
             </div>
@@ -131,9 +153,16 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
                 <span>{alert.location}</span>
               </div>
               
-              <span className="text-xs text-gray-600 px-2 py-0.5 rounded bg-white/5">
-                {alert.category}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600 px-2 py-0.5 rounded bg-white/5">
+                  {alert.category}
+                </span>
+                {alert.source && (
+                  <span className="text-xs text-gray-600">
+                    via {alert.source}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )
