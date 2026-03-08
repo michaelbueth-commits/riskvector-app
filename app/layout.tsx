@@ -1,6 +1,12 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { systemScheduler } from '@/lib/scheduler'
+
+// Initialize scheduler on app startup
+if (process.env.NODE_ENV === 'production') {
+  systemScheduler.initialize().catch(console.error)
+}
 
 const inter = Inter({ subsets: ['latin'] })
 

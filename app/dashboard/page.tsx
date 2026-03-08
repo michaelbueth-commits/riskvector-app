@@ -126,6 +126,17 @@ export default function Dashboard() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-3">
+              <a 
+                href={`/api/risk/${selectedCountry}/emergency`}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 transition text-red-400 hover:text-red-300"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="font-medium">Emergency Contacts</span>
+              </a>
               <ThemeToggle />
               <button className="p-2 rounded-lg hover:bg-white/5 transition">
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,21 +284,40 @@ export default function Dashboard() {
 
               {/* Emergency Contacts */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Emergency Contacts</h3>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2 text-gray-300">
-                    <span>🚨</span>
-                    <span>Emergency: {riskData.emergencyNumber || '112'}</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-gray-300">
-                    <span>🏛️</span>
-                    <span>Embassy: {riskData.embassyContact || 'Check local'}</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-gray-300">
-                    <span>🏥</span>
-                    <span>Medical: {riskData.medicalAssistance || 'Local hospitals'}</span>
-                  </li>
-                </ul>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Emergency Contacts</h3>
+                  <a 
+                    href={riskData.emergencyContacts?.url || `/api/risk/${selectedCountry}/emergency`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition border border-red-500/30"
+                  >
+                    View All →
+                  </a>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <span>🚨</span>
+                      <span>Emergency</span>
+                    </div>
+                    <span className="font-mono text-red-400">{riskData.emergencyNumber || '112'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <span>🏛️</span>
+                      <span>Embassy</span>
+                    </div>
+                    <span className="text-xs text-gray-500">View details</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <span>🏥</span>
+                      <span>Medical</span>
+                    </div>
+                    <span className="text-xs text-gray-500">Local hospitals</span>
+                  </div>
+                </div>
               </div>
 
               {/* Trend Chart */}

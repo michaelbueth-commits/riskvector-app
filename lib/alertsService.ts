@@ -450,6 +450,29 @@ export async function fetchAlertsForCoordinates(lat: number, lng: number): Promi
   });
 }
 
+// Open-Meteo Weather Alerts (Global)
+async function fetchOpenMeteoAlerts(lat: number, lon: number): Promise<RealAlert[]> {
+  try {
+    const response = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&forecast_days=1&timezone=auto`
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+
+    // Open-Meteo doesn't have a direct "alerts" array in this endpoint,
+    // but we can derive alerts from weather codes or extreme values.
+    // This is a placeholder for a more complex implementation.
+    // For now, we will rely on the OpenWeatherMap integration for alerts.
+    
+    return []; // Placeholder
+
+  } catch (error) {
+    console.error('Open-Meteo fetch error:', error);
+    return [];
+  }
+}
+
+
 // ReliefWeb - Humanitarian and Disaster Alerts
 async function fetchReliefWebAlerts(): Promise<RealAlert[]> {
   try {

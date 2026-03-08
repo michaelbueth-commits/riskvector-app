@@ -2,6 +2,94 @@ import { NextResponse } from 'next/server'
 import { fetchCountryAlerts, getAlertStats, RealAlert } from '@/lib/alertsService'
 import { countries, getCountryByName } from '@/lib/countries'
 import { getTravelAdvisory, convertAdvisoryScore } from '@/lib/travelAdvisoryService'
+// import { getEmergencyNumber } from '@/lib/emergencyContacts'
+import RegionalPoliceService from '@/lib/regionalPolice'
+
+// Generate detailed warning reasons and sources
+function generateWarningDetails(
+  score: number, 
+  level: string, 
+  alerts: RealAlert[], 
+  conflictInfo: any,
+  advisory: any
+) {
+  const reasons: string[] = []
+  const sources: string[] = []
+  
+  if (conflictInfo) {
+    reasons.push(`⚠️ CONFLICT ZONE: ${conflictInfo.advisory}`)
+    sources.push('RiskVector Conflict Intelligence Database')
+  } else {
+    // Analyze alerts to determine specific reasons
+    const criticalAlerts = alerts.filter(a => a.type === 'critical')
+    const highAlerts = alerts.filter(a => a.type === 'high')
+    
+    if (criticalAlerts.length > 0) {
+      reasons.push(`🔴 CRITICAL ALERTS (${criticalAlerts.length}): Multiple severe threats detected`)
+      criticalAlerts.slice(0, 3).forEach(alert => {
+        reasons.push(`   • ${alert.category}: ${alert.title}`)
+        if (alert.source && !sources.includes(alert.source)) {
+          sources.push(alert.source)
+        }
+      })
+    }
+    
+    if (highAlerts.length > 0) {
+      reasons.push(`🟠 HIGH RISK ALERTS (${highAlerts.length}): Significant threats detected`)
+      highAlerts.slice(0, 2).forEach(alert => {
+        reasons.push(`   • ${alert.category}: ${alert.title}`)
+        if (alert.source && !sources.includes(alert.source)) {
+          sources.push(alert.source)
+        }
+      })
+    }
+    
+    // Add travel advisory information
+    if (advisory && advisory.score > 3) {
+      reasons.push(`🌍 TRAVEL ADVISORY: Level ${advisory.score} - ${advisory.message || 'Government warning issued'}`)
+      sources.push('Government Travel Advisory')
+    }
+    
+    // Add score explanation
+    if (score >= 80) {
+      reasons.push(`📊 SEVERITY: Score ${score}/100 - CRITICAL level due to combined threats`)
+    } else if (score >= 60) {
+      reasons.push(`📊 SEVERITY: Score ${score}/100 - HIGH level due to elevated threats`)
+    } else if (score >= 40) {
+      reasons.push(`📊 SEVERITY: Score ${score}/100 - MEDIUM level due to active alerts`)
+    } else {
+      reasons.push(`📊 SEVERITY: Score ${score}/100 - LOW level - normal situation`)
+    }
+  }
+  
+  // Remove duplicate sources and sort
+  const uniqueSet = new Set(sources)
+  const uniqueSources = Array.from(uniqueSet).sort()
+  
+  return {
+    level: level.toUpperCase(),
+    score: score,
+    reasons: reasons.length > 0 ? reasons : ['No specific threats detected'],
+    sources: uniqueSources.length > 0 ? uniqueSources : ['RiskVector Intelligence'],
+    timestamp: new Date().toISOString(),
+    recommendation: getRecommendation(level)
+  }
+}
+
+function getRecommendation(level: string): string {
+  switch (level.toLowerCase()) {
+    case 'critical':
+      return '⚠️ AVOID ALL TRAVEL - Multiple severe threats present. Immediate evacuation may be necessary.'
+    case 'high':
+      return '⚠️ RECONSIDER TRAVEL - Significant threats detected. If travel is essential, exercise extreme caution.'
+    case 'medium':
+      return '⚠️ EXERCISE CAUTION - Some threats present. Monitor situation closely and follow official guidance.'
+    case 'low':
+      return '✅ NORMAL PRECAUTIONS - No significant threats detected. Exercise normal safety measures.'
+    default:
+      return 'Monitor situation and follow official guidance.'
+  }
+}
 
 // Helper function to fetch OpenWeatherMap alerts
 async function fetchOpenWeatherAlerts(lat: number, lon: number): Promise<RealAlert[]> {
@@ -78,17 +166,23 @@ const CONFLICT_ZONES: Record<string, { level: string; score: number; advisory: s
     score: 85,
     advisory: 'CRITICAL: Gang violence, kidnappings, civil unrest. Government collapse. Humanitarian crisis.'
   },
+  'Iran': {
+    level: 'critical',
+    score: 95,
+    advisory: 'CRITICAL: Active regional conflict. Missile attacks on Israel and Israeli airstrikes on Iranian territory. High risk of escalation. Government instability. Severe travel restrictions. DO NOT TRAVEL.'
+  },
 }
 
 // Calculate risk score based on real alert data
 function calculateRiskScore(alerts: any[], category: string, country: string): number {
+  // PRIORITY 1: Check for conflict zone override for Security category
+  if (category === 'Security' && CONFLICT_ZONES[country]) {
+    return CONFLICT_ZONES[country].score;
+  }
+  
   const categoryAlerts = alerts.filter(a => a.category === category)
   
   if (categoryAlerts.length === 0) {
-    // Check if country is in conflict zones
-    if (CONFLICT_ZONES[country] && category === 'Security') {
-      return CONFLICT_ZONES[country].score
-    }
     return Math.floor(Math.random() * 20) + 10 // Base risk if no alerts
   }
   
@@ -142,8 +236,34 @@ export async function GET(
     const baseScore = advisory ? convertAdvisoryScore(advisory.score) : 20; // Default base score
     
     // Calculate risk scores based on real data
-    // Check for conflict zone override first
-    const conflictInfo = CONFLICT_ZONES[country.name]
+    // Check for conflict zone override first - with robust name matching
+    let conflictInfo = CONFLICT_ZONES[country.name]
+    
+    // If not found, try different name variations
+    if (!conflictInfo) {
+      const nameVariations = [
+        country.name.toLowerCase(),
+        country.name.toUpperCase(),
+        country.name.replace('Islamic Republic of ', ''),
+        country.name.replace('Republic of ', ''),
+        country.name.replace('Democratic People\'s Republic of ', ''),
+        country.name.replace('People\'s Republic of ', '')
+      ]
+      
+      for (const variation of nameVariations) {
+        if (CONFLICT_ZONES[variation]) {
+          conflictInfo = CONFLICT_ZONES[variation]
+          console.log(`✅ Found conflict zone for ${country.name} using variation: ${variation}`)
+          break
+        }
+      }
+    }
+    
+    // Special case for Iran - ensure it's always recognized as critical
+    if (!conflictInfo && (country.name.includes('Iran') || country.name.includes('IRAN'))) {
+      conflictInfo = CONFLICT_ZONES['Iran']
+      console.log(`✅ Applied special case for Iran: ${country.name}`)
+    }
     
     let overallScore: number
     let advisoryLevel: string
@@ -154,6 +274,7 @@ export async function GET(
       overallScore = conflictInfo.score
       advisoryLevel = conflictInfo.level
       advisoryText = conflictInfo.advisory
+      console.log(`🎯 CONFLICT ZONE OVERRIDE: ${country.name} -> Score: ${overallScore}, Level: ${advisoryLevel}`)
     } else {
       // Calculate from alerts, starting with the base score
       const alertScore = 
@@ -188,6 +309,51 @@ export async function GET(
     const infrastructureScore = calculateRiskScore(alerts, 'Earthquake', country.name) || 
       calculateRiskScore(alerts, 'Infrastructure', country.name) || Math.floor(Math.random() * 25) + 10
     
+    // Add emergency contact link
+    const emergencyContactUrl = `/api/risk/${encodeURIComponent(country.name)}/emergency`
+    
+    // Add local police intelligence for supported German cities
+    let localPoliceData = null
+    if (country.name === 'Germany') {
+      try {
+        const policeService = RegionalPoliceService.getInstance()
+        const supportedCities = policeService.getSupportedCities()
+        
+        const cityPromises = supportedCities.map(async (city) => {
+          const [reports, risk] = await Promise.all([
+            policeService.getLatestReports(city.key, 3),
+            policeService.getDistrictRisk(city.key)
+          ]);
+          return {
+            name: city.name,
+            riskScore: risk.riskScore,
+            riskLevel: risk.riskLevel,
+            recentReports: reports.map(report => ({
+              id: report.id,
+              title: report.title,
+              category: report.category,
+              severity: report.severity,
+              timestamp: report.timestamp.toISOString()
+            })),
+            apiUrl: `/api/risk/local-police/${city.key}`
+          };
+        });
+
+        localPoliceData = {
+          available: true,
+          cities: await Promise.all(cityPromises)
+        }
+        
+        console.log(`✅ Regional police intelligence added for Germany`)
+      } catch (error) {
+        console.warn('Could not fetch regional police data:', error)
+        localPoliceData = {
+          available: false,
+          error: 'Regional police data is temporarily unavailable.'
+        }
+      }
+    }
+    
     return NextResponse.json({
       country: country.name,
       countryCode: country.code,
@@ -196,6 +362,12 @@ export async function GET(
         lat: country.lat,
         lng: country.lng
       },
+      emergencyContacts: {
+        url: emergencyContactUrl,
+        // emergencyNumber: getEmergencyNumber(country.code),
+        quickAccess: 'Click the URL for comprehensive emergency contact information'
+      },
+      localPolice: localPoliceData,
       overall: overallScore,
       weather: weatherScore,
       political: politicalScore,
@@ -227,9 +399,7 @@ export async function GET(
         medium: stats.medium,
         low: stats.low
       },
-      emergencyNumber: getEmergencyNumber(country.code),
-      embassyContact: getEmbassyInfo(country.name),
-      medicalAssistance: getMedicalInfo(country.name),
+      warningDetails: generateWarningDetails(overallScore, advisoryLevel, alerts, conflictInfo, advisory),
       dataSource: 'Real-time from GDACS, USGS, NOAA',
       lastUpdate: new Date().toISOString()
     })
@@ -242,33 +412,4 @@ export async function GET(
   }
 }
 
-// Emergency numbers by country code
-function getEmergencyNumber(code: string): string {
-  const numbers: Record<string, string> = {
-    'DE': '112',
-    'US': '911',
-    'GB': '999',
-    'FR': '112',
-    'JP': '110 (Police) / 119 (Fire/Ambulance)',
-    'AU': '000',
-    'CA': '911',
-    'IT': '112',
-    'ES': '112',
-    'BR': '192 (SAMU) / 193 (Fire)',
-    'IN': '112',
-    'CN': '110 (Police) / 120 (Medical)',
-    'RU': '112',
-    'MX': '911',
-    'KR': '112 (Police) / 119 (Fire/Medical)',
-  }
-  return numbers[code] || '112 (EU Standard)'
-}
 
-function getEmbassyInfo(country: string): string {
-  // Return generic embassy lookup guidance
-  return `Contact your country's embassy. Directory: usembassy.gov or embassy.gov`
-}
-
-function getMedicalInfo(country: string): string {
-  return `Local hospitals and emergency services. IAMAT.org for travelers health info`
-}

@@ -3,11 +3,14 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { countries, Country } from '@/lib/countries' // Import the central countries list
 
 interface RiskMapProps {
   alerts: any[]
   selectedCountry: string
 }
+
+// REMOVED hardcoded country data, now using central source from lib/countries.ts
 
 export default function RiskMap({ alerts, selectedCountry }: RiskMapProps) {
   const mapRef = useRef<L.Map | null>(null)

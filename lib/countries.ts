@@ -1,5 +1,14 @@
 // All countries with ISO codes and coordinates
-export const countries = [
+
+export interface Country {
+  name: string
+  code: string
+  lat: number
+  lng: number
+  continent: string
+}
+
+export const countries: Country[] = [
   { name: 'Afghanistan', code: 'AF', lat: 33.93911, lng: 67.709953, continent: 'Asia' },
   { name: 'Albania', code: 'AL', lat: 41.153332, lng: 20.168331, continent: 'Europe' },
   { name: 'Algeria', code: 'DZ', lat: 28.033886, lng: 1.659626, continent: 'Africa' },
