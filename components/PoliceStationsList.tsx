@@ -193,7 +193,7 @@ export function PoliceStationsList({ stations, title = "Police Stations", classN
       <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
         <Shield className="w-5 h-5" />
         {title}
-        <Badge variant="outline">{stations.length} stations</Badge>
+        <Badge className="border border-gray-500">{stations.length} stations</Badge>
       </h3>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {stations.map((station) => (
