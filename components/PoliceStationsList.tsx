@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { GlobalPoliceStation } from '@/lib/globalPoliceTypes'
-import Card from '@/components/ui/card'
-import Badge from '@/components/ui/badge'
-import Button from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { 
   MapPin, 
   Phone, 
@@ -75,7 +75,7 @@ export function PoliceStationCard({ station, className }: PoliceStationCardProps
             <div className="flex items-center gap-2 text-sm">
               <Phone className="w-3 h-3 text-red-400" />
               <span className="text-red-400 font-mono">{station.contact.emergency}</span>
-              <Badge variant="outline" className="text-xs bg-red-500/10 border-red-500/30 text-red-400">
+              <Badge className="text-xs bg-red-500/10 border-red-500/30 text-red-400">
                 EMERGENCY
               </Badge>
             </div>
@@ -103,7 +103,7 @@ export function PoliceStationCard({ station, className }: PoliceStationCardProps
           <div className="mb-3">
             <div className="flex flex-wrap gap-1">
               {station.services.slice(0, isExpanded ? station.services.length : 3).map((service, index) => (
-                <Badge key={index} variant="outline" className="text-xs bg-gray-700">
+                <Badge key={index} className="text-xs bg-gray-700 border border-gray-500">
                   {service}
                 </Badge>
               ))}

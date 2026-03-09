@@ -402,8 +402,6 @@ async function fetchNOAAAlerts(): Promise<RealAlert[]> {
   }
 }
 
-import { crisisIntelligenceService } from './crisisIntelligence';
-
 // Main function to fetch all real alerts
 export async function fetchAllRealAlerts(): Promise<RealAlert[]> {
   const alerts: RealAlert[] = []

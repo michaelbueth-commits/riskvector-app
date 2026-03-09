@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { GlobalPoliceReport } from '@/lib/globalPoliceTypes'
-import Card from '@/components/ui/card'
-import Badge from '@/components/ui/badge'
-import Button from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { 
   MapPin, 
   Globe, 
@@ -213,7 +213,7 @@ export function GlobalPoliceReportCard({ report, className }: GlobalPoliceReport
         {report.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-3">
             {report.tags.slice(0, 3).map((tag, index) => (
-              <Badge key={index} variant="outline" className="text-xs bg-gray-700">
+              <Badge key={index} className="text-xs bg-gray-700 border border-gray-500">
                 {tag}
               </Badge>
             ))}
@@ -250,7 +250,7 @@ export function GlobalPoliceFeed({ reports, title = "Global Police Reports", sho
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <AlertTriangle className="w-5 h-5" />
             {title}
-            <Badge variant="outline">{reports.length} reports</Badge>
+            <Badge className="border border-gray-500">{reports.length} reports</Badge>
           </h3>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Zap className="w-4 h-4" />

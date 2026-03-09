@@ -73,7 +73,7 @@ export const greeceAlerts: RealAlert[] = [
     title: 'EMBASSY SECURITY ALERT',
     location: 'Athens, Greece',
     country: 'Greece',
-    timestamp: new Date(Date.now() - 1 day * 24 * 60 * 60 * 1000).toISOString(),
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
     description: 'Several embassies have issued security alerts for their citizens in Athens, citing the unpredictable nature of ongoing protests and the potential for spontaneous violence.',
     source: 'U.S. Embassy in Greece',
     sourceId: 'USEMB-GR-Alert'
@@ -85,7 +85,7 @@ export const greeceAlerts: RealAlert[] = [
     title: 'WILDFIRE WARNING',
     location: 'Crete, Greece',
     country: 'Greece',
-    timestamp: new Date(Date.now() - 2 days * 24 * 60 * 60 * 1000).toISOString(),
+    timestamp: new Date(Date.now() - 2 * 86400000).toISOString(),
     description: 'A critical wildfire warning is in effect for the island of Crete due to high winds and dry conditions. Several villages are on evacuation alert. Air travel may be affected.',
     source: 'Hellenic Fire Service',
     sourceId: 'HFS-Alert'

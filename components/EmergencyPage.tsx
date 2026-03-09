@@ -93,17 +93,15 @@ export default function EmergencyPage({ data }: { data: EmergencyData }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <CardTitle className="text-lg">{contact.name}</CardTitle>
-            <Badge variant={contact.verified ? 'default' : 'secondary'} className="text-xs">
+            <Badge className={`text-xs ${contact.verified ? 'bg-green-500' : 'bg-yellow-500'}`}>
               {contact.verified ? 'Verified' : 'Unverified'}
             </Badge>
           </div>
-          <Badge variant="outline" className="text-xs">
+          <Badge className="text-xs border border-gray-500">
             {contact.type}
           </Badge>
         </div>
-        <CardDescription className="text-sm">
-          {contact.description}
-        </CardDescription>
+        
       </CardHeader>
       <CardContent className="pt-0">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -176,7 +174,7 @@ export default function EmergencyPage({ data }: { data: EmergencyData }) {
             <p className="text-xs text-gray-500 mb-1">Services</p>
             <div className="flex flex-wrap gap-1">
               {contact.services.map((service, index) => (
-                <Badge key={index} variant="secondary" className="text-xs">
+                <Badge key={index} className="text-xs bg-gray-200 text-gray-800">
                   {service}
                 </Badge>
               ))}
@@ -189,7 +187,7 @@ export default function EmergencyPage({ data }: { data: EmergencyData }) {
             <p className="text-xs text-gray-500 mb-1">Languages</p>
             <div className="flex flex-wrap gap-1">
               {contact.languages.map((language, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
+                <Badge key={index} className="text-xs border border-gray-500">
                   {language}
                 </Badge>
               ))}
@@ -205,7 +203,7 @@ export default function EmergencyPage({ data }: { data: EmergencyData }) {
       <h3 className="text-lg font-semibold mb-3 flex items-center">
         {category}
         {!data.hasContacts && (
-          <Badge variant="secondary" className="ml-2">No Data</Badge>
+          <Badge className="ml-2 bg-gray-200 text-gray-800">No Data</Badge>
         )}
       </h3>
       {data.hasContacts && data.contacts ? (
@@ -231,7 +229,7 @@ export default function EmergencyPage({ data }: { data: EmergencyData }) {
             <h1 className="text-3xl font-bold">Emergency Contacts - {data.country}</h1>
             <p className="text-gray-600">Comprehensive emergency assistance information</p>
           </div>
-          <Badge variant={data.warning.includes('HIGH RISK') || data.warning.includes('CRITICAL') ? 'destructive' : 'default'}>
+          <Badge className={data.warning.includes('HIGH RISK') || data.warning.includes('CRITICAL') ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-800'}>
             {data.warning}
           </Badge>
         </div>
@@ -366,7 +364,7 @@ export default function EmergencyPage({ data }: { data: EmergencyData }) {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     {model.name}
-                    <Badge variant="outline">{model.price}</Badge>
+                    <Badge className="border border-gray-500">{model.price}</Badge>
                   </CardTitle>
                   <CardDescription>
                     {model.support}

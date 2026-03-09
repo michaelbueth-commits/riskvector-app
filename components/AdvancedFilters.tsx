@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import Card from '@/components/ui/card'
-import Button from '@/components/ui/button'
-import Badge from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Search, Filter, X, Clock, MapPin, AlertTriangle, RefreshCw } from 'lucide-react'
 import { RealAlert } from '@/lib/alertsService'
 
@@ -158,7 +158,7 @@ export default function AdvancedFilters({ alerts, onFiltered, totalResults }: Ad
             <Filter className="w-4 h-4" />
             Filters
             {hasActiveFilters && (
-              <Badge className="ml-1 bg-blue-500 text-white">{getActiveFilterCount()}</Badge>
+              <Badge className="ml-1 bg-blue-500 text-white">{getActiveFilterCount(filters)}</Badge>
             )}
           </Button>
           <Button onClick={applyFilters} className="bg-blue-500 hover:bg-blue-600">

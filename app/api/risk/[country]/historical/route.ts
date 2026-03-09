@@ -57,7 +57,8 @@ function generateHistoricalData(country: string, city?: string): HistoricalDataP
       date: date.toISOString().split('T')[0],
       riskScore: Math.round(riskScore),
       alerts: Math.floor(baseAlerts),
-      policeReports: Math.floor(baseReports)
+      policeReports: Math.floor(baseReports),
+      category: riskScore > 75 ? 'CRITICAL' : riskScore > 50 ? 'HIGH' : riskScore > 25 ? 'MEDIUM' : 'LOW'
     })
   }
   

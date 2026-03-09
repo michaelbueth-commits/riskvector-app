@@ -33,7 +33,7 @@ export function EnhancedAlertFeed({
   showFilter = true, 
   showStats = true,
   className 
-}: EnhancedAlertFeedProps) {
+}: EnhancedAlertFeedProps): JSX.Element {
   // The rest of the component logic for filtering and displaying remains
   const [filteredAlerts, setFilteredAlerts] = useState<EnhancedAlert[]>(alerts)
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['NEWS', 'POLICE', 'ORGANIZATION', 'GOVERNMENT'])
@@ -50,7 +50,11 @@ export function EnhancedAlertFeed({
     )
   }
 
-  // ... (rest of the component JSX is the same)
+  return (
+    <div className={className}>
+      {/* ... (rest of the component JSX is the same) */}
+    </div>
+  )
 }
 
 export function EnhancedAlertCard({ alert }: { alert: EnhancedAlert }) {

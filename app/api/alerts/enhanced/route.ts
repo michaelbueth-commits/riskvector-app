@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     if (types) filter.types = types.split(',') as any;
     
     const severities = searchParams.get('severities');
-    if (severities) filter.severities = severities.split(',') as any;
+    if (severities) filter.severity = severities.split(',') as any;
 
     const countries = searchParams.get('countries');
     if (countries) filter.countries = countries.split(',');

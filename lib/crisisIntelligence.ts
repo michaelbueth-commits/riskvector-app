@@ -711,6 +711,7 @@ class ACLEDService {
 }
 
 // Export ACLED service instance
+export const crisisIntelligenceService = CrisisIntelligenceService.getInstance()
 export const acledService = ACLEDService.getInstance()
 
 // Enhanced functions that use ACLED when available
