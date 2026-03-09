@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { fetchCountryAlerts, getAlertStats, RealAlert } from '@/lib/alertsService'
 import { countries, getCountryByName } from '@/lib/countries'
 import { getTravelAdvisory, convertAdvisoryScore } from '@/lib/travelAdvisoryService'
-// import { getEmergencyNumber } from '@/lib/emergencyContacts'
+import { getEmergencyNumber } from '@/lib/emergencyContacts'
 import RegionalPoliceService from '@/lib/regionalPolice'
 
 // Generate detailed warning reasons and sources
@@ -364,7 +364,7 @@ export async function GET(
       },
       emergencyContacts: {
         url: emergencyContactUrl,
-        // emergencyNumber: getEmergencyNumber(country.code),
+        emergencyNumber: getEmergencyNumber(country.code),
         quickAccess: 'Click the URL for comprehensive emergency contact information'
       },
       localPolice: localPoliceData,

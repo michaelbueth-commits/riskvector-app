@@ -3,6 +3,8 @@
 
 import { AlertSource, alertSources, getSourcesByCountry } from './alertSources'
 import { countries, getCountryByName } from './countries'
+import { greeceAlerts } from './greeceAlerts'
+import { crisisIntelligenceService } from './crisisIntelligence'
 
 export interface RealAlert {
   id: string
@@ -400,6 +402,8 @@ async function fetchNOAAAlerts(): Promise<RealAlert[]> {
   }
 }
 
+import { crisisIntelligenceService } from './crisisIntelligence';
+
 // Main function to fetch all real alerts
 export async function fetchAllRealAlerts(): Promise<RealAlert[]> {
   const alerts: RealAlert[] = []
@@ -415,14 +419,42 @@ export async function fetchAllRealAlerts(): Promise<RealAlert[]> {
     fetchReliefWebAlerts(),
   ])
   
-  alerts.push(...gdacsAlerts, ...usgsAlerts, ...noaaAlerts, ...japanAlerts, ...volcanoAlerts, ...gdeltAlerts, ...reliefwebAlerts)
+  alerts.push(...gdacsAlerts, ...usgsAlerts, ...noaaAlerts, ...japanAlerts, ...volcanoAlerts, ...gdeltAlerts, ...reliefwebAlerts);
   
-  // Sort by timestamp (newest first)
-  alerts.sort((a, b) => 
+  // Add manually curated alerts for high-risk countries like Greece
+  alerts.push(...greeceAlerts);
+
+  // Generate internal advisories for high-risk countries with no alerts
+  const highRiskCountries = ['GR', 'TR', 'EG', 'LB', 'JO', 'PK', 'NG', 'VE', 'CO'];
+  for (const countryCode of highRiskCountries) {
+    const hasAlerts = alerts.some(alert => getCountryByName(alert.country)?.code === countryCode);
+    if (!hasAlerts) {
+      const riskData = await crisisIntelligenceService.getRiskData(countryCode);
+      if (riskData.overall > 60) {
+        alerts.push({
+          id: `rv-internal-${countryCode}`,
+          type: riskData.overall > 80 ? 'critical' : 'high',
+          category: 'Security Advisory',
+          title: `HIGH RISK ADVISORY: ${riskData.countryName}`,
+          location: riskData.countryName,
+          country: riskData.countryName,
+          timestamp: new Date().toISOString(),
+          description: `RiskVector has identified a high-risk level of ${riskData.overall}/100 for ${riskData.countryName} due to a combination of factors including ${riskData.highestRiskFactor.toLowerCase()}. No specific external alerts are currently active, but heightened caution is advised.`,
+          source: 'RiskVector Internal Assessment',
+          sourceId: 'RV-Internal'
+        });
+      }
+    }
+  }
+  
+  // Sort by timestamp (newest first) and remove duplicates
+  const uniqueAlerts = Array.from(new Map(alerts.map(alert => [alert.id, alert])).values());
+  
+  uniqueAlerts.sort((a, b) => 
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  )
+  );
   
-  return alerts
+  return uniqueAlerts;
 }
 
 // Fetch alerts for specific country

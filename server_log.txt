@@ -1,0 +1,11 @@
+
+> riskvector-app@0.1.0 dev
+> next dev
+
+   ▲ Next.js 14.1.0
+   - Local:        http://localhost:3000
+   - Experiments (use at your own risk):
+     · optimizeCss
+
+ ✓ Ready in 1413ms
+[?25h

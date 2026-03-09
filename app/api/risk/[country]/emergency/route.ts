@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-// import { getEmergencyContactsByCountry, getPricingModel } from '@/lib/emergencyContacts'
+import { getEmergencyContactsByCountry, getPricingModel } from '@/lib/emergencyContacts'
 
 export async function GET(
   request: Request,

@@ -15,12 +15,32 @@ interface Alert {
   url?: string
 }
 
-interface AlertFeedProps {
-  alerts: Alert[]
-  isLoading: boolean
+interface PoliceReport {
+  id: string
+  title: string
+  description: string
+  category: string
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  location: {
+    city: string
+    district?: string
+    street?: string
+  }
+  source: string
+  timestamp: Date
+  status: string
+  cityKey?: string
+  cityName?: string
 }
 
-export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
+interface AlertFeedProps {
+  alerts: Alert[]
+  policeReports?: PoliceReport[]
+  isLoading: boolean
+  showNoAlertsMessage?: boolean
+}
+
+export default function AlertFeed({ alerts, policeReports = [], isLoading, showNoAlertsMessage = true }: AlertFeedProps) {
   const getAlertStyles = (type: string) => {
     switch (type) {
       case 'critical':
@@ -80,9 +100,49 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
       'Security': '⚠️',
       'Health': '🏥',
       'Disaster': '🚨',
+      // Police report categories
+      'TRAFFIC': '🚦',
+      'THEFT': '🚨',
+      'ASSAULT': '⚠️',
+      'VANDALISM': '💥',
+      'DRUGS': '💊',
+      'PUBLIC_ORDER': '👮',
+      'MISSING_PERSON': '🔍',
+      'FRAUD': '💳',
+      'BURGLARY': '🏠',
+      'FIRE': '🔥',
     }
     return icons[category] || '⚠️'
   }
+
+  // Convert police reports to alert format
+  const convertPoliceToAlert = (report: PoliceReport): Alert => {
+    const severityMap = {
+      'LOW': 'low',
+      'MEDIUM': 'medium',
+      'HIGH': 'high',
+      'CRITICAL': 'critical'
+    }
+
+    return {
+      id: report.id,
+      type: severityMap[report.severity] as Alert['type'],
+      category: report.category,
+      title: report.title,
+      location: report.location.district ? `${report.location.district}, ${report.location.city}` : report.location.city,
+      country: report.cityName,
+      timestamp: report.timestamp.toISOString(),
+      description: report.description,
+      source: report.source,
+      url: `/api/risk/local-police/${report.cityKey}`
+    }
+  }
+
+  // Combine alerts and police reports
+  const allAlerts: Alert[] = [
+    ...alerts,
+    ...policeReports.map(convertPoliceToAlert)
+  ]
 
   if (isLoading) {
     return (
@@ -94,7 +154,11 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
     )
   }
 
-  if (alerts.length === 0) {
+  if (allAlerts.length === 0) {
+    if (!showNoAlertsMessage) {
+      return null
+    }
+    
     return (
       <div className="text-center py-16">
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/10 flex items-center justify-center">
@@ -110,7 +174,7 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
 
   return (
     <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
-      {alerts.map((alert) => {
+      {allAlerts.map((alert) => {
         const styles = getAlertStyles(alert.type)
         return (
           <div 
@@ -168,9 +232,9 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
         )
       })}
       
-      {alerts.length > 5 && (
+      {allAlerts.length > 5 && (
         <button className="w-full py-3 text-sm text-gray-400 hover:text-white transition text-center">
-          View all {alerts.length} alerts →
+          View all {allAlerts.length} alerts →
         </button>
       )}
     </div>
