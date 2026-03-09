@@ -220,7 +220,7 @@ export function GlobalPoliceMap({ stations, className }: GlobalPoliceMapProps) {
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <MapPin className="w-5 h-5" />
           Global Police Stations Map
-          <Badge variant="outline">{stations.length} locations</Badge>
+          <Badge className="border border-gray-500">{stations.length} locations</Badge>
         </h3>
         <div className="bg-gray-800 rounded-lg h-96 flex items-center justify-center">
           <div className="text-center">
