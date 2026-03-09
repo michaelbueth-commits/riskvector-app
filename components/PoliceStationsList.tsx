@@ -108,7 +108,7 @@ export function PoliceStationCard({ station, className }: PoliceStationCardProps
                 </Badge>
               ))}
               {!isExpanded && station.services.length > 3 && (
-                <Badge variant="outline" className="text-xs bg-gray-700">
+                <Badge className="text-xs bg-gray-700 border border-gray-500">
                   +{station.services.length - 3} more
                 </Badge>
               )}
