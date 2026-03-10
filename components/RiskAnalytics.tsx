@@ -186,7 +186,7 @@ export default function RiskAnalytics({ country, city, className }: RiskAnalytic
           </div>
           
           <div className="bg-gray-800/50 rounded-lg p-4">
-            <Badge variant="outline" className={`${
+            <Badge className={`${
               analytics.riskCategory === 'CRITICAL' ? 'border-red-500 text-red-500' :
               analytics.riskCategory === 'HIGH' ? 'border-orange-500 text-orange-500' :
               analytics.riskCategory === 'MEDIUM' ? 'border-yellow-500 text-yellow-500' :
