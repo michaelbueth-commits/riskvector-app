@@ -427,11 +427,11 @@ export async function fetchAllRealAlerts(): Promise<RealAlert[]> {
   for (const countryCode of highRiskCountries) {
     const hasAlerts = alerts.some(alert => getCountryByName(alert.country)?.code === countryCode);
     if (!hasAlerts) {
-      const riskData = await crisisIntelligenceService.getRiskData(countryCode);
-      if (riskData.overall > 60) {
+      const riskData = await crisisIntelligenceService.getEnhancedZoneThreat(countryCode);
+      if (riskData.score > 60) {
         alerts.push({
           id: `rv-internal-${countryCode}`,
-          type: riskData.overall > 80 ? 'critical' : 'high',
+          type: riskData.score > 80 ? 'critical' : 'high',
           category: 'Security Advisory',
           title: `HIGH RISK ADVISORY: ${riskData.countryName}`,
           location: riskData.countryName,
