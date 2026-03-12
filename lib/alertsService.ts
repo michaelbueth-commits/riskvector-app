@@ -433,11 +433,11 @@ export async function fetchAllRealAlerts(): Promise<RealAlert[]> {
           id: `rv-internal-${countryCode}`,
           type: riskData.score > 80 ? 'critical' : 'high',
           category: 'Security Advisory',
-          title: `HIGH RISK ADVISORY: ${riskData.countryName}`,
-          location: riskData.countryName,
-          country: riskData.countryName,
+          title: `HIGH RISK ADVISORY: ${countryCode}`,
+          location: countryCode,
+          country: countryCode,
           timestamp: new Date().toISOString(),
-          description: `RiskVector has identified a high-risk level of ${riskData.overall}/100 for ${riskData.countryName} due to a combination of factors including ${riskData.highestRiskFactor.toLowerCase()}. No specific external alerts are currently active, but heightened caution is advised.`,
+          description: `RiskVector has identified a high-risk level of ${riskData.score}/100 for ${countryCode} due to current threat assessment. No specific external alerts are currently active, but heightened caution is advised.`,
           source: 'RiskVector Internal Assessment',
           sourceId: 'RV-Internal'
         });
