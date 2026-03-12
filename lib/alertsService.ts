@@ -4,7 +4,7 @@
 import { AlertSource, alertSources, getSourcesByCountry } from './alertSources'
 import { countries, getCountryByName } from './countries'
 import { greeceAlerts } from './greeceAlerts'
-import { crisisIntelligenceService } from './crisisIntelligence'
+// import { crisisIntelligenceService } from './crisisIntelligence'
 
 export interface RealAlert {
   id: string
@@ -422,28 +422,9 @@ export async function fetchAllRealAlerts(): Promise<RealAlert[]> {
   // Add manually curated alerts for high-risk countries like Greece
   alerts.push(...greeceAlerts);
 
-  // Generate internal advisories for high-risk countries with no alerts
-  const highRiskCountries = ['GR', 'TR', 'EG', 'LB', 'JO', 'PK', 'NG', 'VE', 'CO'];
-  for (const countryCode of highRiskCountries) {
-    const hasAlerts = alerts.some(alert => getCountryByName(alert.country)?.code === countryCode);
-    if (!hasAlerts) {
-      const riskData = await crisisIntelligenceService.getEnhancedZoneThreat(countryCode);
-      if (riskData.score > 60) {
-        alerts.push({
-          id: `rv-internal-${countryCode}`,
-          type: riskData.score > 80 ? 'critical' : 'high',
-          category: 'Security Advisory',
-          title: `HIGH RISK ADVISORY: ${countryCode}`,
-          location: countryCode,
-          country: countryCode,
-          timestamp: new Date().toISOString(),
-          description: `RiskVector has identified a high-risk level of ${riskData.score}/100 for ${countryCode} due to current threat assessment. No specific external alerts are currently active, but heightened caution is advised.`,
-          source: 'RiskVector Internal Assessment',
-          sourceId: 'RV-Internal'
-        });
-      }
-    }
-  }
+  // Note: Crisis Intelligence Service temporarily disabled for deployment
+  // Will be re-enabled in a future update
+  // TODO: Re-enable crisisIntelligenceService integration
   
   // Sort by timestamp (newest first) and remove duplicates
   const uniqueAlerts = Array.from(new Map(alerts.map(alert => [alert.id, alert])).values());
