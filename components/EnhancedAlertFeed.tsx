@@ -24,6 +24,7 @@ interface EnhancedAlertFeedProps {
   showFilter?: boolean
   showStats?: boolean
   className?: string
+  onSelectAlert?: (alert: EnhancedAlert) => void
 }
 
 // This is now a pure client component that receives server-fetched data

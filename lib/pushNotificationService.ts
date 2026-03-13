@@ -1,0 +1,248 @@
+// Push Notification Service
+// Real-time alerts for critical events
+
+export interface PushNotification {
+  id: string
+  type: 'critical' | 'high' | 'medium' | 'low'
+  title: string
+  message: string
+  region?: string
+  country?: string
+  timestamp: string
+  actionUrl?: string
+  icon?: string
+}
+
+export interface PushSubscription {
+  endpoint: string
+  keys: {
+    auth: string
+    p256dh: string
+  }
+}
+
+class PushNotificationService {
+  private static instance: PushNotificationService
+  private subscriptions: Map<string, PushSubscription> = new Map()
+  private notificationQueue: PushNotification[] = []
+  private isProcessing = false
+
+  private constructor() {
+    this.initializeServiceWorker()
+  }
+
+  static getInstance(): PushNotificationService {
+    if (!PushNotificationService.instance) {
+      PushNotificationService.instance = new PushNotificationService()
+    }
+    return PushNotificationService.instance
+  }
+
+  private async initializeServiceWorker() {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js')
+        await this.setupPushNotifications(registration)
+      } catch (error) {
+        console.warn('Service Worker registration failed:', error)
+      }
+    }
+  }
+
+  async requestPermission(): Promise<boolean> {
+    if (!('Notification' in window)) {
+      console.warn('This browser does not support notifications')
+      return false
+    }
+
+    if (Notification.permission === 'granted') {
+      return true
+    }
+
+    if (Notification.permission !== 'denied') {
+      const permission = await Notification.requestPermission()
+      return permission === 'granted'
+    }
+
+    return false
+  }
+
+  async subscribe(region?: string, country?: string): Promise<boolean> {
+    try {
+      const permissionGranted = await this.requestPermission()
+      if (!permissionGranted) {
+        return false
+      }
+
+      if (!('serviceWorker' in navigator)) {
+        return false
+      }
+
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: this.getVapidPublicKey()
+      })
+
+      // Store subscription
+      this.subscriptions.set(`${region || 'global'}-${country || 'all'}`, {
+        endpoint: subscription.endpoint,
+        keys: {
+          auth: subscription.getKey('auth') ? Array.from(subscription.getKey('auth')).join('') : '',
+          p256dh: subscription.getKey('p256dh') ? Array.from(subscription.getKey('p256dh')).join('') : ''
+        }
+      })
+
+      return true
+    } catch (error) {
+      console.error('Push subscription failed:', error)
+      return false
+    }
+  }
+
+  async sendNotification(notification: PushNotification): Promise<void> {
+    // Add to queue
+    this.notificationQueue.push(notification)
+    
+    if (!this.isProcessing) {
+      this.processNotificationQueue()
+    }
+  }
+
+  private async processNotificationQueue(): Promise<void> {
+    this.isProcessing = true
+    
+    while (this.notificationQueue.length > 0) {
+      const notification = this.notificationQueue.shift()
+      if (notification) {
+        await this.deliverNotification(notification)
+      }
+    }
+    
+    this.isProcessing = false
+  }
+
+  private async deliverNotification(notification: PushNotification): Promise<void> {
+    if (Notification.permission === 'granted') {
+      try {
+        const title = `[${notification.type.toUpperCase()}] ${notification.title}`
+        const options: NotificationOptions = {
+          body: notification.message,
+          icon: notification.icon || '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: notification.id,
+          data: {
+            url: notification.actionUrl || '/dashboard',
+            region: notification.region,
+            country: notification.country
+          },
+          requireInteraction: notification.type === 'critical',
+          actions: notification.actionUrl ? [
+            {
+              action: 'view',
+              title: 'Anzeigen'
+            }
+          ] : []
+        }
+
+        new Notification(title, options)
+      } catch (error) {
+        console.error('Failed to deliver notification:', error)
+      }
+    }
+  }
+
+  async sendCriticalAlert(
+    title: string,
+    message: string,
+    region?: string,
+    country?: string,
+    actionUrl?: string
+  ): Promise<void> {
+    const notification: PushNotification = {
+      id: `critical-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'critical',
+      title,
+      message,
+      region,
+      country,
+      timestamp: new Date().toISOString(),
+      actionUrl,
+      icon: '/icons/critical-alert.png'
+    }
+
+    await this.sendNotification(notification)
+  }
+
+  async sendRegionalAlert(
+    region: string,
+    title: string,
+    message: string,
+    severity: 'high' | 'medium' = 'high'
+  ): Promise<void> {
+    const notification: PushNotification = {
+      id: `regional-${region}-${Date.now()}`,
+      type: severity,
+      title: `[${region}] ${title}`,
+      message,
+      region,
+      timestamp: new Date().toISOString(),
+      icon: `/icons/${severity}-alert.png`
+    }
+
+    await this.sendNotification(notification)
+  }
+
+  unsubscribe(region?: string, country?: string): Promise<void> {
+    const key = `${region || 'global'}-${country || 'all'}`
+    this.subscriptions.delete(key)
+    
+    // Also unsubscribe from browser if possible
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.pushManager.getSubscription().then(subscription => {
+          if (subscription) {
+            subscription.unsubscribe()
+          }
+        })
+      })
+    }
+  }
+
+  getSubscriptionStatus(region?: string, country?: string): boolean {
+    const key = `${region || 'global'}-${country || 'all'}`
+    return this.subscriptions.has(key)
+  }
+
+  private getVapidPublicKey(): string {
+    // This should be your actual VAPID public key
+    return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
+  }
+}
+
+export const pushNotificationService = PushNotificationService.getInstance()
+
+// Hook for React components
+export function usePushNotifications() {
+  const [permission, setPermission] = useState<NotificationPermission>('default')
+  const [subscribed, setSubscribed] = useState(false)
+
+  useEffect(() => {
+    setPermission(Notification.permission)
+    
+    // Check current subscription status
+    setSubscribed(pushNotificationService.getSubscriptionStatus())
+  }, [])
+
+  const requestPermission = async (region?: string, country?: string) => {
+    const success = await pushNotificationService.subscribe(region, country)
+    setSubscribed(success)
+    return success
+  }
+
+  return {
+    permission,
+    subscribed,
+    requestPermission
+  }
+}
