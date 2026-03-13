@@ -28,7 +28,7 @@ interface EnhancedAlertFeedProps {
 }
 
 // This is now a pure client component that receives server-fetched data
-export function EnhancedAlertFeed({ 
+function EnhancedAlertFeed({ 
   alerts = [], 
   title = "Enhanced Alert Feed", 
   showFilter = true, 
@@ -58,6 +58,8 @@ export function EnhancedAlertFeed({
   )
 }
 
-export function EnhancedAlertCard({ alert }: { alert: EnhancedAlert }) {
+function EnhancedAlertCard({ alert }: { alert: EnhancedAlert }) {
   // ... (this sub-component remains the same)
 }
+
+export default EnhancedAlertFeed

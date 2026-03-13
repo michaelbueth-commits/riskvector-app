@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { EnhancedAlertFeed } from '@/components/EnhancedAlertFeed'
+import EnhancedAlertFeed from '@/components/EnhancedAlertFeed'
 import { GeoFilter } from '@/components/GeoFilter'
 import { SourceVerification } from '@/components/SourceVerification'
 import { Alert, AlertSource } from '@/lib/enhancedAlertService'
