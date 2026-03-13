@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Country, Region } from '../types/countries'
-import { countries } from '../lib/countries'
+import { countries } from '../types/countries'
 
 interface GeoFilterProps {
   onRegionChange: (region: string | null) => void
