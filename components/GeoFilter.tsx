@@ -107,3 +107,5 @@ export default function GeoFilter({
     </div>
   )
 }
+
+export default GeoFilter

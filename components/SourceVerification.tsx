@@ -175,3 +175,5 @@ export default function SourceVerification({ sources, className = '' }: SourceVe
     </div>
   )
 }
+
+export default SourceVerification
