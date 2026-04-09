@@ -12,8 +12,6 @@ import { pushNotificationService } from '@/lib/pushNotificationService'
 import { usePushNotifications } from '@/lib/pushNotificationService'
 
 // Force dynamic rendering and no caching
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
 function Dashboard() {
   const [alerts, setAlerts]: [ServiceAlert[], any] = useState<ServiceAlert[]>([])
