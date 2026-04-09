@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import Dashboard from './dashboard/page'
+import Dashboard from './components/DashboardClient'
 
 export const dynamic = "force-dynamic"
 export const metadata: Metadata = {
