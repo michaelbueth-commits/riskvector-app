@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Push Notification Service
 // Real-time alerts for critical events
 

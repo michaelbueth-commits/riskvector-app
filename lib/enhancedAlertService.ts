@@ -1,4 +1,5 @@
 // Enhanced Alert Service
+import { AlertFilter } from "./enhancedAlertTypes"
 // Unified interface for all alert data sources with proper typing
 
 export interface Alert {
@@ -111,6 +112,9 @@ export interface ACLEDAlert {
   source_scale: string
 }
 
+
+// Filter interface for querying alerts
+
 // Service class for enhanced alert processing
 export class EnhancedAlertService {
   private static instance: EnhancedAlertService
@@ -126,7 +130,7 @@ export class EnhancedAlertService {
     return EnhancedAlertService.instance
   }
 
-  async getAllAlerts(): Promise<EnhancedAlert[]> {
+  async getAllAlerts(filter?: AlertFilter): Promise<EnhancedAlert[]> {
     // In a real implementation, this would fetch from various sources
     // For now, return sample data
     return this.getSampleAlerts()
@@ -168,7 +172,8 @@ export class EnhancedAlertService {
     return [
       {
         id: 'gr-2026-0307-001',
-        type: 'critical',
+        type: 'government',
+        severity: 'critical',
         title: 'Critical Security Alert: Athens, Greece',
         description: 'Multiple coordinated attacks reported in central Athens. High risk area. All civilians advised to avoid the area until further notice.',
         location: 'Athens, Greece',
@@ -197,8 +202,9 @@ export class EnhancedAlertService {
       },
       {
         id: 'de-2026-0307-002',
-        type: 'high',
+        type: 'news',
         title: 'Protest Alert: Berlin, Germany',
+        severity: 'high',
         description: 'Large-scale protest forming in Berlin city center. Traffic disruptions expected. Participants gathering at Brandenburg Gate.',
         location: 'Berlin, Germany',
         country: 'Germany',
@@ -232,7 +238,8 @@ export class EnhancedAlertService {
       },
       {
         id: 'tr-2026-0307-003',
-        type: 'critical',
+        type: 'usgs',
+        severity: 'high',
         title: 'Earthquake Alert: Eastern Turkey',
         description: 'Magnitude 6.2 earthquake reported in eastern Turkey. Aftershocks expected. Emergency services deployed to affected areas.',
         location: 'Elazığ, Turkey',
@@ -268,7 +275,8 @@ export class EnhancedAlertService {
       },
       {
         id: 'jp-2026-0307-004',
-        type: 'medium',
+        severity: 'high',
+        type: 'police',
         title: 'Typhoon Warning: Okinawa, Japan',
         description: 'Typhoon approaching Okinawa. Expected to make landfall within 24 hours. Residents advised to prepare emergency supplies.',
         location: 'Okinawa, Japan',
@@ -298,7 +306,8 @@ export class EnhancedAlertService {
       },
       {
         id: 'us-2026-0307-005',
-        type: 'high',
+        type: 'news',
+        severity: 'high',
         title: 'Wildfire Alert: California, USA',
         description: 'Fast-moving wildfire reported in Northern California. Evacuation orders issued for several communities. Fire spreading rapidly due to dry conditions.',
         location: 'Northern California, USA',
@@ -398,7 +407,8 @@ export function validateAlert(alert: Partial<Alert>): boolean {
 export function sanitizeAlert(alert: Partial<Alert>): Alert {
   return {
     id: alert.id || `alert-${Date.now()}`,
-    type: alert.type || 'medium',
+    type: alert.type || 'news',
+    severity: alert.severity || 'medium',
     title: alert.title || 'Untitled Alert',
     description: alert.description || 'No description available',
     location: alert.location || 'Unknown',

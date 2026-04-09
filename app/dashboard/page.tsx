@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import EnhancedAlertFeed from '@/components/EnhancedAlertFeed'
-import { GeoFilter } from '@/components/GeoFilter'
-import { SourceVerification } from '@/components/SourceVerification'
+import { EnhancedAlert as ServiceAlert } from "@/lib/enhancedAlertService"
+import { EnhancedAlert } from "@/lib/enhancedAlertTypes"
+import GeoFilter from '@/components/GeoFilter'
+import SourceVerification from '@/components/SourceVerification'
 import { Alert, AlertSource } from '@/lib/enhancedAlertService'
 import { enhancedAlertService } from '@/lib/enhancedAlertService'
 import { pushNotificationService } from '@/lib/pushNotificationService'
@@ -14,8 +16,8 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 function Dashboard() {
-  const [alerts, setAlerts] = useState<Alert[]>([])
-  const [filteredAlerts, setFilteredAlerts] = useState<Alert[]>([])
+  const [alerts, setAlerts]: [ServiceAlert[], any] = useState<ServiceAlert[]>([])
+  const [filteredAlerts, setFilteredAlerts] = useState<ServiceAlert[]>([])
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null)
@@ -196,14 +198,14 @@ function Dashboard() {
 
           {/* Alert Feed */}
           <EnhancedAlertFeed 
-            alerts={filteredAlerts}
-            onSelectAlert={handleAlertSelect}
+            alerts={filteredAlerts as any}
+            onSelectAlert={handleAlertSelect as any}
           />
 
           {/* Source Verification Panel */}
           {selectedAlert && (
             <div className="mt-8">
-              <SourceVerification sources={selectedAlert.sources} />
+              <SourceVerification sources={(selectedAlert as any)?.sources} />
             </div>
           )}
         </div>

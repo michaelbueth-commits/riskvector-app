@@ -29,7 +29,7 @@ export interface CountryEmergencyInfo {
   medical: EmergencyContact[]
   fire: EmergencyContact[]
   embassies: EmergencyContact[] // Major foreign embassies
-  consulates?: EmergencyContact[] // Consulate assistance
+  consulates: EmergencyContact[] // Consulate assistance
   internationalHelp: EmergencyContact[] // UN, Red Cross, etc.
   ngos: EmergencyContact[] // Local and international NGOs
   governmentHotlines: EmergencyContact[]

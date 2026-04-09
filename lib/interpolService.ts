@@ -72,13 +72,13 @@ class INTERPOLService {
       // Process and enhance INTERPOL notices
       const enhancedNotices: PoliceAlert[] = data.notices.map(notice => ({
         ...notice,
-        id: `interpol-red-${notice._id || Date.now()}`,
+        id: `interpol-red-${notice.id || Date.now()}`,
         type: 'RED_NOTICE',
         threatLevel: this.determineThreatLevel(notice),
         severity: this.determineSeverity(notice),
-        timestamp: notice.date_of_birth || new Date().toISOString(),
+        timestamp: notice.dateOfBirth || new Date().toISOString(),
         coordinates: notice.nationalities?.length ? this.getCountryCoordinates(notice.nationalities[0]) : undefined,
-        lastKnownLocation: notice.country_of_birth_id || notice.nationalities?.[0]
+        lastKnownLocation: notice.nationalities?.[0]
       }))
 
       // Filter by countries if specified

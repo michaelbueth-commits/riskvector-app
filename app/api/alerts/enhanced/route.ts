@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 import { NextResponse } from 'next/server';
 import { enhancedAlertService } from '@/lib/enhancedAlertService';
 import { AlertFilter } from '@/lib/enhancedAlertTypes';

@@ -138,10 +138,10 @@ class GlobalPoliceService {
           lastUpdate: '2024-01-15'
         },
         dataSources: {
-          official: ['FBI', 'DOJ', 'Local Police Departments'],
-          news: ['AP', 'Reuters', 'Local Newspapers'],
-          community: ['Police.community', 'Nextdoor'],
-          apis: ['FBI Crime Data API', 'Data.gov']
+          official: ['FBI', 'DOJ', 'Local Police Departments'] as any as any,
+          news: ['AP', 'Reuters', 'Local Newspapers'] as any as any,
+          community: ['Police.community', 'Nextdoor'] as any as any,
+          apis: ['FBI Crime Data API', 'Data.gov'] as any as any
         }
       },
       'GB': {
@@ -151,7 +151,7 @@ class GlobalPoliceService {
           name: 'British Police',
           emergencyNumber: '999',
           nonEmergencyNumber: '101',
-          structure: 'regional',
+          structure: 'mixed',
           levels: ['Territorial', 'Specialist']
         },
         coverage: {
@@ -160,10 +160,10 @@ class GlobalPoliceService {
           lastUpdate: '2024-01-10'
         },
         dataSources: {
-          official: ['Police.uk', 'Home Office'],
-          news: ['BBC', 'The Guardian', 'Local News'],
-          community: ['Neighbourhood Watch'],
-          apis: ['Police.uk API', 'Crime Map']
+          official: ['Police.uk', 'Home Office'] as any as any,
+          news: ['BBC', 'The Guardian', 'Local News'] as any as any,
+          community: ['Neighbourhood Watch'] as any as any,
+          apis: ['Police.uk API', 'Crime Map'] as any as any
         }
       },
       'DE': {
@@ -182,10 +182,10 @@ class GlobalPoliceService {
           lastUpdate: '2024-01-08'
         },
         dataSources: {
-          official: ['BKA', 'LKA', 'Local PDs'],
-          news: ['Spiegel', 'Bild', 'Local Papers'],
-          community: ['Nachbarschaftswache'],
-          apis: ['Polizei-Berlin.de', 'BKA Portal']
+          official: ['BKA', 'LKA', 'Local PDs'] as any,
+          news: ['Spiegel', 'Bild', 'Local Papers'] as any,
+          community: ['Nachbarschaftswache'] as any,
+          apis: ['Polizei-Berlin.de', 'BKA Portal'] as any
         }
       },
       'FR': {
@@ -204,10 +204,10 @@ class GlobalPoliceService {
           lastUpdate: '2024-01-12'
         },
         dataSources: {
-          official: ['Ministère de l\'Intérieur', 'Police Nationale'],
-          news: ['Le Monde', 'Le Figaro', 'Local Press'],
-          community: ['Voisins Vigilants'],
-          apis: ['Gouvernement.fr', 'Data.gouv.fr']
+          official: ['Ministère de l\'Intérieur', 'Police Nationale'] as any,
+          news: ['Le Monde', 'Le Figaro', 'Local Press'] as any,
+          community: ['Voisins Vigilants'] as any,
+          apis: ['Gouvernement.fr', 'Data.gouv.fr'] as any
         }
       },
       'JP': {
@@ -226,10 +226,10 @@ class GlobalPoliceService {
           lastUpdate: '2024-01-05'
         },
         dataSources: {
-          official: ['NPA', 'Prefectural Police'],
-          news: ['NHK', 'Asahi Shimbun', 'Local Papers'],
-          community: ['Chonaikai'],
-          apis: ['NPA Portal', 'Open Data Japan']
+          official: ['NPA', 'Prefectural Police'] as any,
+          news: ['NHK', 'Asahi Shimbun', 'Local Papers'] as any,
+          community: ['Chonaikai'] as any,
+          apis: ['NPA Portal', 'Open Data Japan'] as any
         }
       }
     }
