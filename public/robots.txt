@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://riskvector.app/sitemap.xml
