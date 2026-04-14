@@ -2,23 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Vercel-specific optimizations
-  poweredByHeader: false,
-  generateBuildId: () => 'riskvector-prod',
-  
-  // Performance optimizations
-  compress: true,
-  images: {
-    domains: [
-      'riskvector.app',
-      'localhost',
-      'vercel.com',
-      'assets.vercel.com'
-    ],
-    formats: ['image/webp', 'image/avif'],
-  },
-  
-  // Security headers for production
   async headers() {
     return [
       {
@@ -26,7 +9,7 @@ const nextConfig = {
         headers: [
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
           {
             key: 'X-Content-Type-Options',
@@ -38,23 +21,40 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' vercel-insights.vercel.app; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' vercel-insights.vercel.app;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https: https://*.tile.openstreetmap.org; font-src 'self'; connect-src 'self' https:; frame-src https://www.openstreetmap.org;",
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(self)',
           },
         ],
       },
     ]
   },
-
-  // Redirect configuration for riskvector.app
-  async redirects() {
-    return [
-      {
-        source: '/dashboard',
-        destination: '/',
-        permanent: false,
-      }
-    ]
-  }
+  
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+  
+  compress: true,
+  poweredByHeader: false,
+  generateBuildId: () => 'riskvector-1775850246',
+  
+  experimental: {
+    optimizeCss: false,
+    optimizePackageImports: ['lucide-react', 'recharts'],
+  },
+  
+  images: {
+    domains: ['localhost'],
+    formats: ['image/webp', 'image/avif'],
+  },
+  
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
 }
 
 module.exports = nextConfig

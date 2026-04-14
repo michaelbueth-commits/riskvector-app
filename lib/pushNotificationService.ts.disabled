@@ -40,10 +40,10 @@ class PushNotificationService {
   }
 
   private async initializeServiceWorker() {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    // if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       try {
-        const registration = await navigator.serviceWorker.register('/sw.js')
-        await this.setupPushNotifications(registration)
+        // const registration = await navigator.serviceWorker.register('/sw.js')
+        // push notifications setup skipped
       } catch (error) {
         console.warn('Service Worker registration failed:', error)
       }
@@ -75,11 +75,11 @@ class PushNotificationService {
         return false
       }
 
-      if (!('serviceWorker' in navigator)) {
+      // if (!('serviceWorker' in navigator)) {
         return false
       }
 
-      const registration = await navigator.serviceWorker.ready
+      // const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.getVapidPublicKey()
@@ -199,7 +199,7 @@ class PushNotificationService {
     this.subscriptions.delete(key)
     
     // Also unsubscribe from browser if possible
-    if ('serviceWorker' in navigator) {
+    // if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then(registration => {
         registration.pushManager.getSubscription().then(subscription => {
           if (subscription) {
@@ -225,11 +225,11 @@ export const pushNotificationService = PushNotificationService.getInstance()
 
 // Hook for React components
 export function usePushNotifications() {
-  const [permission, setPermission] = useState<NotificationPermission>('default')
+  const [permission, setPermission] = useState<string>('default')
   const [subscribed, setSubscribed] = useState(false)
 
   useEffect(() => {
-    setPermission(Notification.permission)
+    setPermission(typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default')
     
     // Check current subscription status
     setSubscribed(pushNotificationService.getSubscriptionStatus())

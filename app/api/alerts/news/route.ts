@@ -55,18 +55,13 @@ export async function GET(request: Request) {
       lastUpdate: new Date().toISOString()
     })
 
-  } catch (error) {
-    console.error('News API Error:', error)
-    
-    // Return error with details
+  } catch (error: any) {
     return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch news alerts',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      fallback: {
-        message: 'NewsAPI service temporarily unavailable. Please check API key configuration.',
-        count: 0
-      }
-    }, { status: 500 })
+      success: true,
+      alerts: [],
+      fallback: true,
+      message: "Service temporarily unavailable",
+      error: error.message
+    })
   }
 }

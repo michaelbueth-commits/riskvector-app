@@ -1,51 +1,30 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { systemScheduler } from '@/lib/scheduler'
-
-// Initialize scheduler on app startup
-if (process.env.NODE_ENV === 'production') {
-  systemScheduler.initialize().catch(console.error)
-}
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'RiskVector - Global Emergency Intelligence',
-  description: 'Real-time risk monitoring for travelers. Know before you go.',
-  keywords: 'travel safety, risk alerts, emergency notifications, travel intelligence',
+  title: 'RiskVector — Wie sicher ist dein Reiseziel?',
+  description: 'Prüfe sofort das Sicherheitsrisiko von 195 Ländern. Sicherheitsampel, Reise-Checklisten, Echtzeit-Alerts. Kostenlos testen.',
+  keywords: 'Reisesicherheit, Risiko-Check, Reisewarnung, Länderbewertung, Sicherheitsampel, Travel Safety',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="de" suppressHydrationWarning>
       <head>
-        {/* Theme script - runs before page load to prevent flash */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var theme = localStorage.getItem('theme') || 'system';
-                  var effectiveTheme = theme;
-                  
-                  if (theme === 'system') {
-                    effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                  }
-                  
-                  document.documentElement.setAttribute('data-theme', effectiveTheme);
-                  document.documentElement.classList.add(effectiveTheme);
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
+        <link rel="icon" href="/favicon.ico" />
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <>
+            <script async src={"https://www.googletagmanager.com/gtag/js?id=" + process.env.NEXT_PUBLIC_GA_ID} />
+            <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');` }} />
+          </>
+        )}
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={`${inter.className} bg-[#030714] text-slate-100 antialiased`} suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   )
 }

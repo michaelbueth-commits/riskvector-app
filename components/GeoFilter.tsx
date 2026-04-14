@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Country, Region } from '../types/countries'
-import { countries } from '../types/countries'
+import { countries } from '../lib/countries'
 
 interface GeoFilterProps {
   onRegionChange: (region: string | null) => void
@@ -86,7 +86,7 @@ export default function GeoFilter({
               }`}
             >
               <div className="font-medium">{country.name}</div>
-              <div className="text-xs opacity-75">{country.code} • {country.region}</div>
+              <div className="text-xs opacity-75">{country.code} • {country.continent}</div>
             </button>
           ))}
         </div>
@@ -107,4 +107,3 @@ export default function GeoFilter({
     </div>
   )
 }
-

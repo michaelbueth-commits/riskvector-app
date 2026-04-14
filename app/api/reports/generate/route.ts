@@ -1,117 +1,109 @@
 import { NextResponse } from 'next/server'
-import { RealAlert } from '@/lib/alertsService'
-
-interface ReportData {
-  country: string
-  city?: string
-  title: string
-  generatedAt: string
-  riskScores: {
-    overall: number
-    weather: number
-    political: number
-    health: number
-    infrastructure: number
-  }
-  alerts: RealAlert[]
-  policeReports: any[]
-  analytics: {
-    averageRiskScore: number
-    maxRiskScore: number
-    minRiskScore: number
-    totalAlerts: number
-    totalPoliceReports: number
-    trend: string
-    riskCategory: string
-  }
-}
+import { fetchCountryAlerts, getAlertStats } from '@/lib/alertsService'
+import { countries, getCountryByName } from '@/lib/countries'
+import { getTravelAdvisory, convertAdvisoryScore } from '@/lib/travelAdvisoryService'
+import { getEmergencyNumber } from '@/lib/emergencyContacts'
+import { getCached, setCache, TTL_15_MIN } from '@/lib/cache'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { country, city, format = 'pdf' } = body
+    const { country, city, format = 'html' } = body
 
-    // Fetch current risk data
-    const riskResponse = await fetch(`http://localhost:3000/api/risk/${encodeURIComponent(country)}`)
-    const riskData = await riskResponse.json()
+    // Fetch risk data via internal logic (no localhost call)
+    const countryObj = getCountryByName(country) || countries.find(c => c.name.toLowerCase().includes(country?.toLowerCase()))
+    
+    let riskScores = { overall: 0, weather: 0, political: 0, health: 0, infrastructure: 0 }
+    let advisoryText = 'No data available'
+    let emergencyNumber = '112'
+    let alertList: any[] = []
 
-    // Fetch alerts
-    const alertsResponse = await fetch('http://localhost:3000/api/alerts')
-    const alertsData = await alertsResponse.json()
-    const alerts: RealAlert[] = alertsData.alerts || []
-
-    // Fetch police reports
-    const policeResponse = await fetch('http://localhost:3000/api/relevant-police')
-    const policeData = await policeResponse.json()
-    const policeReports = policeData.reports || []
-
-    // Fetch analytics data
-    const analyticsResponse = await fetch(`http://localhost:3000/api/risk/${encodeURIComponent(country)}/historical`)
-    const analyticsData = await analyticsResponse.json()
-
-    // Prepare report data
-    const reportData: ReportData = {
-      country,
-      city,
-      title: `Risk Intelligence Report: ${city ? `${city}, ` : ''}${country}`,
-      generatedAt: new Date().toISOString(),
-      riskScores: {
-        overall: riskData.overall || 0,
-        weather: riskData.weather || 0,
-        political: riskData.political || 0,
-        health: riskData.health || 0,
-        infrastructure: riskData.infrastructure || 0
-      },
-      alerts: alerts.slice(0, 20), // Top 20 alerts
-      policeReports: policeReports.slice(0, 10), // Top 10 police reports
-      analytics: analyticsData.analytics || {
-        averageRiskScore: 0,
-        maxRiskScore: 0,
-        minRiskScore: 0,
-        totalAlerts: 0,
-        totalPoliceReports: 0,
-        trend: 'stable',
-        riskCategory: 'MINIMAL'
+    if (countryObj) {
+      // Check cache for risk data
+      const cacheKey = `risk:${countryObj.name}`
+      const cached = getCached<any>(cacheKey)
+      if (cached) {
+        riskScores = { overall: cached.overall, weather: cached.weather, political: cached.political, health: cached.health, infrastructure: cached.infrastructure }
+        advisoryText = cached.advisoryText || advisoryText
+      } else {
+        // Lightweight fetch without full risk calculation
+        const advisory = await getTravelAdvisory(countryObj.code)
+        const baseScore = advisory ? convertAdvisoryScore(advisory.score) : 20
+        riskScores.overall = baseScore
+        advisoryText = advisory?.message || advisoryText
       }
+      emergencyNumber = getEmergencyNumber(countryObj.code) || emergencyNumber
+      
+      try {
+        alertList = await fetchCountryAlerts(countryObj.name)
+      } catch { /* alerts optional */ }
     }
 
-    // Generate report based on format
-    if (format === 'pdf') {
-      // For now, return JSON data - in production, this would generate a PDF
-      return NextResponse.json({
-        success: true,
-        format: 'pdf',
-        data: reportData,
-        message: 'PDF report generation not yet implemented. Data available for download.'
-      })
-    } else if (format === 'excel') {
-      // For now, return JSON data - in production, this would generate an Excel file
-      return NextResponse.json({
-        success: true,
-        format: 'excel',
-        data: reportData,
-        message: 'Excel report generation not yet implemented. Data available for download.'
-      })
-    } else if (format === 'json') {
-      // Return raw JSON data
-      return NextResponse.json({
-        success: true,
-        format: 'json',
-        data: reportData,
-        download: true
-      })
-    }
+    const now = new Date().toISOString()
+    const title = `Risk Intelligence Report: ${city ? `${city}, ` : ''}${country || 'Unknown'}`
 
-    return NextResponse.json({
-      success: false,
-      error: 'Unsupported format'
-    }, { status: 400 })
+    // Always return HTML for browser printing
+    const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>${title}</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;max-width:800px;margin:0 auto;padding:40px 20px;color:#1a1a1a;line-height:1.6}
+  h1{font-size:24px;border-bottom:2px solid #e5e7eb;padding-bottom:12px}
+  h2{font-size:18px;margin-top:32px;color:#374151}
+  .meta{color:#6b7280;font-size:14px;margin-bottom:24px}
+  .score-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:20px 0}
+  .score-card{text-align:center;padding:16px;border-radius:8px;border:1px solid #e5e7eb}
+  .score-card .value{font-size:28px;font-weight:700}
+  .score-card .label{font-size:12px;color:#6b7280;margin-top:4px}
+  .score-critical .value{color:#dc2626} .score-high .value{color:#ea580c}
+  .score-medium .value{color:#ca8a04} .score-low .value{color:#16a34a}
+  .alert{padding:12px;border-left:4px solid #e5e7eb;margin:8px 0;border-radius:0 4px 4px 0}
+  .alert-critical{border-color:#dc2626;background:#fef2f2} .alert-high{border-color:#ea580c;background:#fff7ed}
+  .emergency{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:20px 0}
+  .footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af}
+  @media print{body{padding:20px}}
+</style></head><body>
+<h1>${title}</h1>
+<p class="meta">Generated: ${new Date().toLocaleString('en-GB',{dateStyle:'full',timeStyle:'short'})} | RiskVector Intelligence</p>
 
-  } catch (error) {
+<h2>Risk Scores</h2>
+<div class="score-grid">
+  ${scoreCard('Overall', riskScores.overall)}
+  ${scoreCard('Weather', riskScores.weather)}
+  ${scoreCard('Political', riskScores.political)}
+  ${scoreCard('Health', riskScores.health)}
+  ${scoreCard('Infrastructure', riskScores.infrastructure)}
+</div>
+
+<h2>Advisory</h2>
+<p>${advisoryText}</p>
+
+${alertList.length > 0 ? `<h2>Active Alerts (${alertList.length})</h2>
+${alertList.slice(0, 20).map(a => `<div class="alert alert-${a.type || 'medium'}"><strong>${a.category || 'General'}:</strong> ${a.title || a.description || 'No details'}${a.source ? ` <em>— ${a.source}</em>` : ''}</div>`).join('\n')}` : '<p>No active alerts.</p>'}
+
+<div class="emergency">
+  <h2 style="margin-top:0">Emergency Contacts</h2>
+  <p><strong>Emergency Number:</strong> ${emergencyNumber}</p>
+  <p><strong>Country:</strong> ${country || 'N/A'}</p>
+</div>
+
+<div class="footer">
+  <p>This report was generated by RiskVector.app — Global Emergency Intelligence. Data sourced from GDACS, USGS, NOAA, and government travel advisories. For real-time updates, visit riskvector.app.</p>
+</div>
+</body></html>`
+
+    return new NextResponse(html, {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Disposition': `inline; filename="riskvector-report-${(country || 'unknown').toLowerCase()}.html"`,
+      },
+    })
+  } catch (error: any) {
     console.error('Report generation error:', error)
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to generate report'
-    }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Failed to generate report' }, { status: 500 })
   }
+}
+
+function scoreCard(label: string, value: number): string {
+  const cls = value >= 80 ? 'critical' : value >= 60 ? 'high' : value >= 40 ? 'medium' : 'low'
+  return `<div class="score-card score-${cls}"><div class="value">${value}</div><div class="label">${label}</div></div>`
 }

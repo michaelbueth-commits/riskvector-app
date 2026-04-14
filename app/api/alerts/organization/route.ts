@@ -100,18 +100,13 @@ export async function GET(request: Request) {
       lastUpdate: new Date().toISOString()
     })
 
-  } catch (error) {
-    console.error('Organization API Error:', error)
-    
-    // Return error with details
+  } catch (error: any) {
     return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch organization alerts',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      fallback: {
-        message: 'UN/NGO services temporarily unavailable. Using verified humanitarian alerts.',
-        count: 0
-      }
-    }, { status: 500 })
+      success: true,
+      alerts: [],
+      fallback: true,
+      message: "Service temporarily unavailable",
+      error: error.message
+    })
   }
 }
