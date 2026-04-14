@@ -2,6 +2,13 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  async rewrites() {
+    return [
+      { source: '/sw.js', destination: '/api/sw' },
+      { source: '/manifest.json', destination: '/api/manifest' },
+    ]
+  },
+
   async headers() {
     return [
       {
