@@ -12,6 +12,23 @@ import { Suspense } from 'react'
 import LocationSearch from '@/components/LocationSearch'
 import type { LocationItem } from '@/components/LocationSearch'
 
+interface WatchlistItem {
+  country: string
+  addedAt: string
+  lastRiskScore: number
+  previousRiskScore?: number
+}
+
+interface Advisory {
+  country: string
+  source: string
+  level: number
+  levelText: string
+  summary: string
+  lastUpdated: string
+  url: string
+}
+
 function getScoreColor(score: number) {
   if (score <= 35) return 'text-emerald-400'
   if (score <= 65) return 'text-amber-400'
@@ -23,6 +40,13 @@ function getScoreLabel(score: number) {
   if (score <= 50) return 'Etwas Vorsicht'
   if (score <= 75) return 'Erhöhtes Risiko'
   return 'Hohes Risiko'
+}
+
+function getAdvisoryIcon(level: number) {
+  if (level === 1) return '🟢'
+  if (level === 2) return '🟡'
+  if (level === 3) return '🟠'
+  return '🔴'
 }
 
 function DashboardContent() {
@@ -40,6 +64,33 @@ function DashboardContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'checklist' | 'details'>('overview')
+  const [isInWatchlist, setIsInWatchlist] = useState(false)
+  const [watchlistCount, setWatchlistCount] = useState(0)
+  const [advisories, setAdvisories] = useState<Advisory[]>([])
+
+  const checkWatchlist = useCallback(() => {
+    try {
+      const raw = localStorage.getItem('rv_watchlist')
+      const items: WatchlistItem[] = raw ? JSON.parse(raw) : []
+      setIsInWatchlist(items.some(i => i.country.toLowerCase() === country.toLowerCase()))
+      setWatchlistCount(items.length)
+    } catch {}
+  }, [country])
+
+  const toggleWatchlist = () => {
+    try {
+      const raw = localStorage.getItem('rv_watchlist')
+      const items: WatchlistItem[] = raw ? JSON.parse(raw) : []
+      const idx = items.findIndex(i => i.country.toLowerCase() === country.toLowerCase())
+      if (idx >= 0) {
+        items.splice(idx, 1)
+      } else {
+        items.push({ country, addedAt: new Date().toISOString().split('T')[0], lastRiskScore: risk?.overall ?? 50 })
+      }
+      localStorage.setItem('rv_watchlist', JSON.stringify(items))
+      checkWatchlist()
+    } catch {}
+  }
 
   const fetchRisk = useCallback(async (c: string) => {
     setLoading(true); setError('')
@@ -58,8 +109,17 @@ function DashboardContent() {
     } catch {}
   }, [])
 
+  const fetchAdvisories = useCallback(async (c: string) => {
+    try {
+      const r = await fetch('/api/advisories?country=' + encodeURIComponent(c))
+      if (r.ok) { const data = await r.json(); setAdvisories(data.advisories || []) }
+    } catch {}
+  }, [])
+
   useEffect(() => { fetchRisk(country) }, [country, fetchRisk])
   useEffect(() => { fetchAlerts() }, [fetchAlerts])
+  useEffect(() => { fetchAdvisories(country) }, [country, fetchAdvisories])
+  useEffect(() => { checkWatchlist() }, [country, checkWatchlist])
 
   const shareProfile = () => {
     const text = `🛡️ ${country} Sicherheits-Score: ${risk?.overall || '?'}/100 — RiskVector.app`
@@ -87,8 +147,11 @@ function DashboardContent() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="/" className="text-xs text-slate-500 hover:text-white transition">Home</Link>
+            <Link href="/watchlist" className="text-xs text-slate-500 hover:text-white transition flex items-center gap-1">⭐ Watchlist{watchlistCount > 0 && <span className="bg-indigo-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{watchlistCount}</span>}</Link>
+            <Link href="/checkin" className="text-xs text-slate-500 hover:text-white transition">🛡️ Check-in</Link>
             <Link href="/pricing" className="text-xs text-slate-500 hover:text-white transition">Preise</Link>
             <Link href="/rankings" className="text-xs text-slate-500 hover:text-white transition">Rankings</Link>
+            <Link href="/notfall" className="text-xs text-red-400 hover:text-red-300 transition font-semibold">🆘 Notfall</Link>
           </div>
         </div>
       </nav>
@@ -108,7 +171,12 @@ function DashboardContent() {
         {risk && !loading && (
           <div className="animate-fade-in">
             <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 mb-6 text-center">
-              <div className="text-sm text-slate-500 mb-4">{risk.country}</div>
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="text-sm text-slate-500">{risk.country}</div>
+                <button onClick={toggleWatchlist} className={`text-lg transition hover:scale-110 ${isInWatchlist ? 'text-yellow-400' : 'text-slate-600 hover:text-yellow-400'}`} title={isInWatchlist ? 'Von Watchlist entfernen' : 'Zur Watchlist hinzufügen'}>
+                  {isInWatchlist ? '⭐' : '☆'}
+                </button>
+              </div>
               <div className="mb-6"><RiskGauge score={risk.overall} size="lg" /></div>
               <div className={`text-lg font-semibold mb-6 ${getScoreColor(risk.overall)}`}>{getScoreLabel(risk.overall)}</div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -125,8 +193,35 @@ function DashboardContent() {
                   </div>
                 ))}
               </div>
-              <button onClick={shareProfile} className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm hover:bg-white/10 transition text-slate-300">📤 Risiko-Profil teilen</button>
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                <button onClick={shareProfile} className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm hover:bg-white/10 transition text-slate-300">📤 Risiko-Profil teilen</button>
+                <Link href={`/checkin?country=${encodeURIComponent(country)}`} className="bg-emerald-600/20 border border-emerald-600/30 rounded-lg px-4 py-2 text-sm hover:bg-emerald-600/30 transition text-emerald-400">🛡️ Bin sicher</Link>
+                <button onClick={toggleWatchlist} className={`border rounded-lg px-4 py-2 text-sm transition ${isInWatchlist ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}>
+                  {isInWatchlist ? '⭐ Gemerkt' : '⭐ Merken'}
+                </button>
+              </div>
             </div>
+
+            {/* Government Advisories */}
+            {advisories.length > 0 && (
+              <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+                <h3 className="font-semibold text-slate-100 mb-4">🏛️ Offizielle Reisehinweise</h3>
+                <div className="space-y-3">
+                  {advisories.map((adv, i) => (
+                    <div key={i} className="flex items-center justify-between bg-white/[0.03] rounded-xl p-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{getAdvisoryIcon(adv.level)}</span>
+                        <div>
+                          <div className="text-sm font-medium text-slate-200">{adv.source}</div>
+                          <div className="text-xs text-slate-500">{adv.levelText}</div>
+                        </div>
+                      </div>
+                      <a href={adv.url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:underline">Details ↗</a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-1 mb-6 bg-white/5 rounded-xl p-1">
               {([

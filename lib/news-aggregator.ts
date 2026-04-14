@@ -49,7 +49,7 @@ const COUNTRY_KEYWORDS: Record<string, string[]> = {
   'Turkey': ['turkey', 'türkiye', 'istanbul', 'ankara', 'antalya'],
   'Germany': ['germany', 'deutschland', 'berlin', 'munich', 'hamburg', 'frankfurt'],
   'Thailand': ['thailand', 'bangkok', 'chiang mai', 'phuket', 'thai'],
-  'United States': ['usa', 'united states', 'america', 'washington', 'new york', 'california'],
+  'United States': ['united states', 'american', 'u.s.', 'us army', 'us military', 'washington dc', 'white house', 'congress', 'pentagon', 'fbi', 'nasa', 'us president', 'biden', 'trump', 'us senate', 'us house', 'california', 'texas', 'florida', 'new york city', 'chicago', 'los angeles', 'houston', 'us supreme court', 'us economy', 'noaa', 'us weather'],
   'United Kingdom': ['uk', 'britain', 'london', 'england', 'scotland', 'wales'],
   'France': ['france', 'paris', 'lyon', 'marseille', 'french'],
   'Ukraine': ['ukraine', 'kyiv', 'kiev', 'donetsk', 'crimea'],
